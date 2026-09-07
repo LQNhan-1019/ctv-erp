@@ -30,6 +30,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
 export const metadata: Metadata = {
   // ... (giữ nguyên phần metadata của bạn)
+  // ... (giữ nguyên phần metadata của bạn)
   metadataBase: new URL(siteUrl),
   title: {
     default: 'CTV ERP — Điều hành phân phối',

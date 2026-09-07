@@ -4,8 +4,10 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
-  // Xóa cache wrangler
-  // chỉnh tên trong packege.json
+  // Tạm tắt tối ưu ảnh để Cloudflare không đòi Worker liên kết
+  images: {
+    unoptimized: true,
+  },
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', '*.trycloudflare.com'],

@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   // Xóa cache wrangler
+  // chỉnh tên trong packege.json
   experimental: {
     serverActions: {
       allowedOrigins: ['localhost:3000', '*.trycloudflare.com'],

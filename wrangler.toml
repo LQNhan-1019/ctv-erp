@@ -1,0 +1,7 @@
+name = "ctv-erp"
+compatibility_date = "2024-01-01"
+
+# Ép lại Service Binding cho đúng
+services = [
+  { binding = "WORKER_SELF_REFERENCE", service = "ctv-erp" }
+]

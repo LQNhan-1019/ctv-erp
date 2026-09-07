@@ -4,6 +4,3 @@ compatibility_date = "2024-01-01"
 pages_build_output_dir = ".vercel/output/static"
 
 # Ép lại Service Binding cho đúng
-services = [
-  { binding = "WORKER_SELF_REFERENCE", service = "ctv-erp" }
-]

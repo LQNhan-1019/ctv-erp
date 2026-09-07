@@ -1,0 +1,4 @@
+interface:
+  display_name: "ERP CTV Frontend"
+  short_description: "Maintain Next.js ERP authentication and account UI"
+  default_prompt: "Use $erp-ctv-frontend to implement or review this Next.js frontend safely."

@@ -1,5 +1,7 @@
 name = "ctv-erp"
 compatibility_date = "2024-01-01"
+# Khai báo thư mục xuất file chính xác cho Next.js trên Cloudflare
+pages_build_output_dir = ".vercel/output/static"
 
 # Ép lại Service Binding cho đúng
 services = [

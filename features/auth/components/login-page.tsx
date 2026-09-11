@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (status === 'authenticated') router.replace('/accounts');
+    if (status === 'authenticated') router.replace('/home');
   }, [router, status]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -25,7 +25,7 @@ export default function LoginPage() {
     setError('');
     try {
       await login({ username, password });
-      router.replace('/accounts');
+      router.replace('/home');
     } catch (cause) {
       setError(cause instanceof ApiClientError ? cause.message : 'Không thể kết nối máy chủ. Vui lòng thử lại.');
     } finally {

@@ -23,27 +23,27 @@ export class ApiClientError extends Error {
   }
 }
 
-function readCookie(name: string) {
-  if (typeof document === 'undefined') return null;
-  const prefix = `${encodeURIComponent(name)}=`;
-  const cookie = document.cookie.split('; ').find((item) => item.startsWith(prefix));
-  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null;
-}
+let csrfToken: string | null = null;
+let csrfPromise: Promise<string | null> | null = null;
 
 export async function initializeCsrf() {
-  await fetch(`${env.apiBaseUrl}/api/auth/csrf`, {
+  const response = await fetch(`${env.apiBaseUrl}/api/auth/csrf`, {
     method: 'GET',
     credentials: 'include',
     cache: 'no-store',
     headers: { Accept: 'application/json' },
   });
+  if (!response.ok) throw new Error('Không khởi tạo được CSRF token');
+  const payload = await response.json() as { token?: string };
+  csrfToken = payload.token ?? null;
+  return csrfToken;
 }
 
 async function requireCsrfToken() {
-  let token = readCookie('XSRF-TOKEN');
+  let token = csrfToken;
   if (!token) {
-    await initializeCsrf();
-    token = readCookie('XSRF-TOKEN');
+    csrfPromise ??= initializeCsrf().finally(() => { csrfPromise = null; });
+    token = await csrfPromise;
   }
   if (!token) {
     throw new ApiClientError({
@@ -62,11 +62,15 @@ async function parseResponse(response: Response) {
   return contentType.includes('application/json') ? response.json() : undefined;
 }
 
-export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}, csrfRetry = true): Promise<T> {
   const method = (options.method ?? 'GET').toUpperCase();
   const headers = new Headers(options.headers);
+  const isFormData = options.body instanceof FormData;
+  const requestBody: BodyInit | undefined = options.body === undefined
+    ? undefined
+    : isFormData ? options.body as FormData : JSON.stringify(options.body);
   headers.set('Accept', 'application/json');
-  if (options.body !== undefined) headers.set('Content-Type', 'application/json');
+  if (options.body !== undefined && !isFormData) headers.set('Content-Type', 'application/json');
   if (options.accessToken) headers.set('Authorization', `Bearer ${options.accessToken}`);
   if (MUTATING_METHODS.has(method) && !options.skipCsrf) {
     headers.set('X-XSRF-TOKEN', await requireCsrfToken());
@@ -78,19 +82,25 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     headers,
     credentials: 'include',
     cache: 'no-store',
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: requestBody,
   });
   const payload = await parseResponse(response);
+  const errorPayload = (payload ?? {}) as Partial<ApiErrorPayload>;
+  if (response.status === 403 && errorPayload.code === 'CSRF_VALIDATION_FAILED'
+      && csrfRetry && MUTATING_METHODS.has(method) && !options.skipCsrf) {
+    csrfToken = null;
+    await requireCsrfToken();
+    return apiRequest<T>(path, options, false);
+  }
 
   if (!response.ok) {
-    const error = (payload ?? {}) as Partial<ApiErrorPayload>;
     throw new ApiClientError({
       status: response.status,
-      error: error.error ?? response.statusText,
-      code: error.code ?? `HTTP_${response.status}`,
-      message: error.message ?? 'Máy chủ không thể xử lý yêu cầu',
-      path: error.path,
-      requestId: error.requestId ?? response.headers.get('X-Request-Id') ?? undefined,
+      error: errorPayload.error ?? response.statusText,
+      code: errorPayload.code ?? `HTTP_${response.status}`,
+      message: errorPayload.message ?? 'Máy chủ không thể xử lý yêu cầu',
+      path: errorPayload.path,
+      requestId: errorPayload.requestId ?? response.headers.get('X-Request-Id') ?? undefined,
     });
   }
   return payload as T;

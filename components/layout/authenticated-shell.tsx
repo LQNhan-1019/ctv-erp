@@ -12,6 +12,7 @@ type ShellLink = { href: string; label: string; icon: IconName };
 type ShellGroup = { label: string; items: ShellLink[] };
 
 const routeMap: Record<string, string> = {
+  '/home': '/home',
   '/dashboard': '/dashboard',
   '/performance/goals': '/performance/goals',
   '/performance/data-entry': '/performance/data-entry',
@@ -21,6 +22,11 @@ const routeMap: Record<string, string> = {
   '/system/settings': '/system/settings',
   '/system/integrations': '/system/integrations',
   '/system/backups': '/system/backups',
+  '/hr/employees': '/hr/employees',
+  '/hr/attendance': '/hr/attendance',
+  '/admin/expenses': '/admin/expenses',
+  '/admin/documents': '/admin/documents',
+  '/admin/work-items': '/admin/work-items',
 };
 
 const iconByCode: Record<string, IconName> = {
@@ -34,9 +40,15 @@ const iconByCode: Record<string, IconName> = {
   NAV_SYSTEM_SETTINGS: 'settings',
   NAV_SYSTEM_INTEGRATIONS: 'plug',
   NAV_SYSTEM_BACKUPS: 'database',
+  NAV_HR_EMPLOYEES: 'users',
+  NAV_HR_ATTENDANCE: 'clock',
+  NAV_ADMIN_EXPENSES: 'database',
+  NAV_ADMIN_DOCUMENTS: 'calendar',
+  NAV_ADMIN_WORK: 'clipboard',
 };
 
 const pageHeadings: Record<string, { eyebrow: string; title: string }> = {
+  '/home': { eyebrow: 'KHÔNG GIAN LÀM VIỆC', title: 'Trang chủ' },
   '/accounts': { eyebrow: 'QUẢN TRỊ TRUY CẬP', title: 'Quản lý tài khoản' },
   '/security/roles': { eyebrow: 'QUẢN TRỊ TRUY CẬP', title: 'Vai trò và phân quyền' },
   '/security/audit': { eyebrow: 'AN TOÀN HỆ THỐNG', title: 'Nhật ký hoạt động' },
@@ -46,6 +58,11 @@ const pageHeadings: Record<string, { eyebrow: string; title: string }> = {
   '/dashboard': { eyebrow: 'TỔNG QUAN', title: 'Dashboard ERP' },
   '/performance/goals': { eyebrow: 'HIỆU SUẤT', title: 'Mục tiêu KPI / OKR' },
   '/performance/data-entry': { eyebrow: 'HIỆU SUẤT', title: 'Nhập số liệu theo ngày' },
+  '/hr/employees': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Nhân viên và phòng ban' },
+  '/hr/attendance': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Quản lý chấm công' },
+  '/admin/expenses': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Tổng hợp chi phí hành chính' },
+  '/admin/documents': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Quản lý thời hạn giấy tờ' },
+  '/admin/work-items': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Quản lý công việc' },
 };
 
 function toShellLink(item: NavigationItem): ShellLink | null {
@@ -78,6 +95,7 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
   const access: ShellLink[] = [];
   const system: ShellLink[] = [];
   const performance: ShellLink[] = [];
+  const humanResources: ShellLink[] = [];
 
   if (canManage) {
     access.push(
@@ -91,6 +109,11 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
   if (permissions.includes('SYSTEM.BACKUP.VIEW')) system.push({ href: '/system/backups', label: 'Sao lưu dữ liệu', icon: 'database' });
   if (permissions.includes('PERFORMANCE.GOAL.VIEW')) performance.push({ href: '/performance/goals', label: 'Mục tiêu KPI / OKR', icon: 'target' });
   if (permissions.includes('PERFORMANCE.DATA.ENTER')) performance.push({ href: '/performance/data-entry', label: 'Nhập số liệu theo ngày', icon: 'table' });
+  if (permissions.includes('HR.VIEW')) humanResources.push({ href: '/hr/employees', label: 'Nhân viên & phòng ban', icon: 'users' });
+  if (permissions.includes('HR.ATTENDANCE.VIEW')) humanResources.push({ href: '/hr/attendance', label: 'Quản lý chấm công', icon: 'clock' });
+  if (permissions.includes('ADMIN.EXPENSE.VIEW')) humanResources.push({ href: '/admin/expenses', label: 'Chi phí hành chính', icon: 'database' });
+  if (permissions.includes('ADMIN.DOCUMENT.VIEW')) humanResources.push({ href: '/admin/documents', label: 'Hồ sơ & thời hạn', icon: 'calendar' });
+  if (permissions.includes('ADMIN.WORK.VIEW')) humanResources.push({ href: '/admin/work-items', label: 'Quản lý công việc', icon: 'clipboard' });
 
   const dashboard = permissions.includes('PERFORMANCE.DASHBOARD.VIEW')
     ? [{ href: '/dashboard', label: 'Dashboard ERP', icon: 'dashboard' as IconName }]
@@ -98,6 +121,7 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
   const groups: ShellGroup[] = [
     { label: 'TỔNG QUAN', items: dashboard },
     { label: 'MỤC TIÊU & HIỆU SUẤT', items: performance },
+    { label: 'HÀNH CHÍNH NHÂN SỰ', items: humanResources },
     { label: 'QUẢN TRỊ TRUY CẬP', items: access },
     { label: 'HỆ THỐNG', items: system },
   ];
@@ -105,7 +129,7 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
 }
 
 export default function AuthenticatedShell({ children }: { children: React.ReactNode }) {
-  const { user, status, logout, request } = useAuth();
+  const { user, status, sessionError, retrySession, logout, request } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -124,12 +148,12 @@ export default function AuthenticatedShell({ children }: { children: React.React
       .then((items) => {
         if (!active) return;
         const groups = toShellGroups(items);
-        setNavigation(groups.length ? groups : fallbackGroups(user.permissions));
+        setNavigation([{ label: 'TRANG CHỦ', items: [{ href: '/home', label: 'Trang chủ', icon: 'dashboard' }] }, ...(groups.length ? groups : fallbackGroups(user.permissions))]);
         setUsingFallback(groups.length === 0);
       })
       .catch(() => {
         if (!active) return;
-        setNavigation(fallbackGroups(user.permissions));
+        setNavigation([{ label: 'TRANG CHỦ', items: [{ href: '/home', label: 'Trang chủ', icon: 'dashboard' }] }, ...fallbackGroups(user.permissions)]);
         setUsingFallback(true);
       });
 
@@ -143,6 +167,9 @@ export default function AuthenticatedShell({ children }: { children: React.React
     router.replace('/login');
   }
 
+  if (status === 'unavailable') {
+    return <main className="nova-session-screen nova-session-unavailable"><p>{sessionError}</p><button className="nova-button primary" onClick={() => void retrySession()}>Thử kết nối lại</button></main>;
+  }
   if (status !== 'authenticated' || !user) {
     return <main className="nova-session-screen"><span className="nova-session-spinner" /><p>Đang xác thực phiên làm việc…</p></main>;
   }
@@ -152,7 +179,7 @@ export default function AuthenticatedShell({ children }: { children: React.React
     <main className="nova-admin-shell">
       {mobileOpen && <button className="nova-mobile-backdrop" onClick={() => setMobileOpen(false)} aria-label="Đóng menu" />}
       <aside className={`nova-admin-sidebar ${mobileOpen ? 'open' : ''}`}>
-        <Link className="nova-admin-brand" href="/dashboard"><span>CTV</span><div><b>CTV</b><small>Distribution ERP</small></div></Link>
+        <Link className="nova-admin-brand" href="/home"><span>CTV</span><div><b>CTV</b><small>Distribution ERP</small></div></Link>
         <div className="nova-admin-context"><span><Icon name="shield" /></span><div><small>KHÔNG GIAN LÀM VIỆC</small><b>Quản trị hệ thống</b></div></div>
         <nav aria-label="Chức năng được cấp quyền">
           {navigation.map((group) => (

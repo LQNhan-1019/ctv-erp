@@ -12,8 +12,10 @@ const typeMeta: Record<ConnectionType, { label: string; icon: IconName; descript
   SMTP: { label: 'Email SMTP', icon: 'mail', description: 'Gửi email thông báo và cảnh báo thời hạn.' },
   FILE_SERVER: { label: 'Máy chủ tệp', icon: 'server', description: 'Lưu bản sao dữ liệu vào hạ tầng nội bộ.' },
   GOOGLE_DRIVE: { label: 'Google Drive', icon: 'database', description: 'Đưa bản sao mã hóa lên thư mục Drive.' },
+  AMIS_HR: { label: 'AMIS Nhân sự', icon: 'users', description: 'Đồng bộ phòng ban, vị trí công việc và hồ sơ nhân viên.' },
   AMIS_TIMESHEET: { label: 'AMIS Chấm công', icon: 'clock', description: 'Đọc dữ liệu chấm công thô bằng HMAC-SHA256.' },
   AMIS_ACCOUNTING: { label: 'AMIS Kế toán', icon: 'plug', description: 'Kết nối dữ liệu kế toán bằng access token riêng của MISA.' },
+  ATTENDANCE_DEVICE: { label: 'Máy chấm công', icon: 'clock', description: 'Kết nối TCP/IP hoặc DDNS tới thiết bị chấm công.' },
 };
 
 function formatDate(value: string | null) {
@@ -78,7 +80,7 @@ export default function IntegrationsPage() {
     try {
       const result = await testIntegrationConnection(request, connection.id);
       setConnections((current) => current.map((item) => item.id === connection.id ? { ...item, lastTestStatus: result.status, lastTestMessage: result.message, lastTestedAt: result.testedAt } : item));
-      setToast(result.status === 'SUCCESS' ? 'Kết nối hoạt động bình thường' : 'Kiểm tra kết nối thất bại');
+      setToast(result.message || (result.status === 'SUCCESS' ? 'Kết nối hoạt động bình thường' : 'Kiểm tra kết nối thất bại'));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Không thể kiểm tra kết nối');
       void load();
@@ -107,7 +109,7 @@ export default function IntegrationsPage() {
 
       <div className="nova-integration-toolbar">
         <div>
-          {(['ALL', 'SMTP', 'FILE_SERVER', 'GOOGLE_DRIVE', 'AMIS_TIMESHEET', 'AMIS_ACCOUNTING'] as const).map((type) => <button key={type} className={typeFilter === type ? 'active' : ''} onClick={() => setTypeFilter(type)}>{type === 'ALL' ? 'Tất cả' : typeMeta[type].label}</button>)}
+          {(['ALL', 'SMTP', 'FILE_SERVER', 'GOOGLE_DRIVE', 'AMIS_HR', 'AMIS_TIMESHEET', 'AMIS_ACCOUNTING', 'ATTENDANCE_DEVICE'] as const).map((type) => <button key={type} className={typeFilter === type ? 'active' : ''} onClick={() => setTypeFilter(type)}>{type === 'ALL' ? 'Tất cả' : typeMeta[type].label}</button>)}
         </div>
         <button onClick={() => void load()} aria-label="Làm mới" disabled={loading}><Icon name="refresh" className={loading ? 'spin' : ''} /></button>
       </div>

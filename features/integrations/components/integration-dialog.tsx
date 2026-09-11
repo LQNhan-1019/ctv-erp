@@ -8,13 +8,17 @@ const typeLabels: Record<ConnectionType, string> = {
   SMTP: 'Máy chủ email (SMTP)',
   FILE_SERVER: 'Máy chủ lưu trữ',
   GOOGLE_DRIVE: 'Google Drive',
+  AMIS_HR: 'MISA AMIS Nhân sự',
   AMIS_TIMESHEET: 'MISA AMIS Chấm công',
   AMIS_ACCOUNTING: 'MISA AMIS Kế toán',
+  ATTENDANCE_DEVICE: 'Máy chấm công trực tiếp',
 };
 
 function field(data: FormData, name: string) {
   return String(data.get(name) ?? '').trim();
 }
+
+type AttendanceTransportProtocol = 'TCP_CONNECTOR' | 'UDP_LEGACY';
 
 export default function IntegrationDialog({ connection, onClose, onSave }: {
   connection: IntegrationConnection | null;
@@ -22,6 +26,12 @@ export default function IntegrationDialog({ connection, onClose, onSave }: {
   onSave: (input: IntegrationConnectionInput) => Promise<void>;
 }) {
   const [type, setType] = useState<ConnectionType>(connection?.connectionType ?? 'SMTP');
+  const [transportProtocol, setTransportProtocol] = useState<AttendanceTransportProtocol>(() => {
+    const configured = connection?.configuration.transportProtocol;
+    if (configured === 'TCP_CONNECTOR' || configured === 'UDP_LEGACY') return configured;
+    return connection?.configuration.pullUrl || !connection ? 'TCP_CONNECTOR' : 'UDP_LEGACY';
+  });
+  const [useWebAddress, setUseWebAddress] = useState(() => connection?.configuration.useWebAddress === 'true' || connection?.configuration.connectionMode === 'DDNS');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const config = connection?.configuration ?? {};
@@ -48,17 +58,46 @@ export default function IntegrationDialog({ connection, onClose, onSave }: {
     } else if (type === 'GOOGLE_DRIVE') {
       configuration.folderId = field(data, 'folderId');
       secretRefs.credentialFileEnv = field(data, 'credentialFileEnv');
-    } else if (type === 'AMIS_TIMESHEET') {
+    } else if (type === 'AMIS_TIMESHEET' || type === 'AMIS_HR') {
       configuration.baseUrl = field(data, 'baseUrl');
       configuration.requestTimeoutMs = field(data, 'requestTimeoutMs');
       secretRefs.clientIdEnv = field(data, 'clientIdEnv');
       secretRefs.secretKeyEnv = field(data, 'secretKeyEnv');
-    } else {
+    } else if (type === 'AMIS_ACCOUNTING') {
       configuration.baseUrl = field(data, 'baseUrl');
       configuration.appId = field(data, 'appId');
       configuration.organizationCode = field(data, 'organizationCode');
       configuration.requestTimeoutMs = field(data, 'requestTimeoutMs');
       secretRefs.accessCodeEnv = field(data, 'accessCodeEnv');
+    } else {
+      configuration.deviceCode = field(data, 'deviceCode');
+      configuration.deviceName = field(data, 'deviceName');
+      configuration.model = field(data, 'model');
+      configuration.connectionMode = useWebAddress ? 'DDNS' : 'TCP_IP';
+      configuration.transportProtocol = transportProtocol;
+      const ipAddress = field(data, 'ipAddress');
+      const webAddress = field(data, 'webAddress');
+      if (ipAddress) configuration.ipAddress = ipAddress;
+      if (webAddress) configuration.webAddress = webAddress;
+      configuration.useWebAddress = String(useWebAddress);
+      configuration.host = useWebAddress ? webAddress : ipAddress;
+      configuration.port = field(data, 'port');
+      configuration.machineNumber = field(data, 'machineNumber');
+      configuration.timeoutMs = field(data, 'timeoutMs');
+      configuration.defaultDirection = field(data, 'defaultDirection');
+      configuration.baudRate = field(data, 'baudRate');
+      const serialNumber = field(data, 'serialNumber');
+      if (serialNumber) configuration.serialNumber = serialNumber;
+      const registrationLimit = field(data, 'registrationLimit');
+      if (registrationLimit) configuration.registrationLimit = registrationLimit;
+      const pullUrl = field(data, 'pullUrl');
+      if (pullUrl) configuration.pullUrl = pullUrl;
+      const pushUrl = field(data, 'pushUrl');
+      if (pushUrl) configuration.pushUrl = pushUrl;
+      const communicationKeyEnv = field(data, 'communicationKeyEnv');
+      if (communicationKeyEnv) secretRefs.communicationKeyEnv = communicationKeyEnv;
+      const pullTokenEnv = field(data, 'pullTokenEnv');
+      if (pullTokenEnv) secretRefs.pullTokenEnv = pullTokenEnv;
     }
 
     setSubmitting(true);
@@ -133,6 +172,17 @@ export default function IntegrationDialog({ connection, onClose, onSave }: {
                 <label><span>Timeout request (ms)</span><input name="requestTimeoutMs" type="number" min={1000} max={120000} defaultValue={config.requestTimeoutMs ?? '30000'} required /></label>
               </>
             )}
+            {type === 'AMIS_HR' && (
+              <>
+                <label><span>Endpoint AMIS Thông tin nhân sự</span><input name="baseUrl" type="url" defaultValue={config.baseUrl ?? 'https://amisapp.misa.vn/APIS/HRMProfileOpenAPI/api/Open'} required /></label>
+                <div className="nova-form-grid">
+                  <label><span>Biến môi trường chứa mã kết nối</span><div className="nova-field"><Icon name="lock" /><input name="clientIdEnv" defaultValue={secrets.clientIdEnv} pattern="[A-Z][A-Z0-9_]{2,127}" placeholder="ERP_AMIS_HR_CLIENT_ID" required /></div></label>
+                  <label><span>Biến môi trường chứa khóa bảo mật</span><div className="nova-field"><Icon name="lock" /><input name="secretKeyEnv" defaultValue={secrets.secretKeyEnv} pattern="[A-Z][A-Z0-9_]{2,127}" placeholder="ERP_AMIS_HR_SECRET_KEY" required /></div></label>
+                </div>
+                <label><span>Timeout request (ms)</span><input name="requestTimeoutMs" type="number" min={1000} max={120000} defaultValue={config.requestTimeoutMs ?? '30000'} required /></label>
+                <div className="nova-info-note"><Icon name="users" /><span>Kết nối này đọc cơ cấu tổ chức, vị trí công việc và hồ sơ nhân viên từ AMIS HR. Không dùng khóa của AMIS Chấm công nếu MISA cấp bộ khóa riêng.</span></div>
+              </>
+            )}
             {type === 'AMIS_ACCOUNTING' && (
               <>
                 <label><span>Endpoint AMIS Kế toán</span><input name="baseUrl" type="url" defaultValue={config.baseUrl ?? 'https://actapp.misa.vn'} required /></label>
@@ -144,6 +194,45 @@ export default function IntegrationDialog({ connection, onClose, onSave }: {
                   <label><span>Biến môi trường chứa mã kết nối</span><div className="nova-field"><Icon name="lock" /><input name="accessCodeEnv" defaultValue={secrets.accessCodeEnv} pattern="[A-Z][A-Z0-9_]{2,127}" placeholder="ERP_AMIS_ACCOUNTING_ACCESS_CODE" required /></div></label>
                   <label><span>Timeout request (ms)</span><input name="requestTimeoutMs" type="number" min={1000} max={120000} defaultValue={config.requestTimeoutMs ?? '30000'} required /></label>
                 </div>
+              </>
+            )}
+            {type === 'ATTENDANCE_DEVICE' && (
+              <>
+                <div className="nova-form-grid">
+                  <label><span>Mã máy</span><input name="deviceCode" defaultValue={config.deviceCode ?? connection?.code ?? 'MCC00001'} pattern="[A-Za-z0-9_-]{2,32}" placeholder="MCC00001" required /></label>
+                  <label><span>Tên máy</span><input name="deviceName" defaultValue={config.deviceName} placeholder="Máy MCC00001" required /></label>
+                </div>
+                <div className="nova-form-grid three">
+                  <label><span>ID máy</span><input name="machineNumber" type="number" min={0} max={9999} defaultValue={config.machineNumber ?? '1'} required /></label>
+                  <label><span>Loại máy</span><input name="model" defaultValue={config.model ?? 'ZKTECO_PERIOD'} placeholder="ZKTECO_PERIOD" required /></label>
+                  <label><span>Kiểu kết nối</span><select name="transportProtocol" value={transportProtocol} onChange={(event) => setTransportProtocol(event.target.value as AttendanceTransportProtocol)}><option value="TCP_CONNECTOR">TCP/IP qua SDK</option><option value="UDP_LEGACY">UDP legacy</option></select></label>
+                </div>
+                <div className="nova-form-grid">
+                  <label><span>Địa chỉ IP</span><input name="ipAddress" defaultValue={config.ipAddress ?? (!config.webAddress ? config.host : '')} placeholder="192.168.1.201" required={!useWebAddress} /></label>
+                  <label><span>Cổng</span><input name="port" type="number" min={1} max={65535} defaultValue={config.port ?? '4370'} required /></label>
+                </div>
+                <div className="nova-form-grid three">
+                  <label><span>Trạng thái máy</span><select name="defaultDirection" defaultValue={config.defaultDirection ?? 'IN'}><option value="IN">Vào</option><option value="OUT">Ra</option></select></label>
+                  <label><span>Tốc độ truyền</span><select name="baudRate" defaultValue={config.baudRate ?? '115200'}><option value="9600">9600</option><option value="19200">19200</option><option value="38400">38400</option><option value="57600">57600</option><option value="115200">115200</option></select></label>
+                  <label><span>Timeout (ms)</span><input name="timeoutMs" type="number" min={1000} max={60000} defaultValue={config.timeoutMs ?? '10000'} required /></label>
+                </div>
+                <div className="nova-form-grid">
+                  <label><span>Địa chỉ Web / DDNS</span><input name="webAddress" defaultValue={config.webAddress ?? (config.connectionMode === 'DDNS' ? config.host : '')} placeholder="ctv0826.ddns.net" required={useWebAddress} /></label>
+                  <label className="nova-switch-label"><span>Kết nối Internet</span><div><input type="checkbox" checked={useWebAddress} onChange={(event) => setUseWebAddress(event.target.checked)} /><b>Sử dụng địa chỉ web</b></div></label>
+                </div>
+                <div className="nova-form-grid">
+                  <label><span>Seri thiết bị</span><input name="serialNumber" defaultValue={config.serialNumber} placeholder="1313250901558" maxLength={128} /></label>
+                  <label><span>Số đăng ký tối đa</span><input name="registrationLimit" type="number" min={1} max={1000000} defaultValue={config.registrationLimit} placeholder="111992" /></label>
+                </div>
+                <label><span>Tên biến môi trường chứa mật khẩu kết nối</span><div className="nova-field"><Icon name="lock" /><input name="communicationKeyEnv" defaultValue={secrets.communicationKeyEnv} pattern="[A-Z][A-Z0-9_]{2,127}" placeholder="ERP_ATTENDANCE_DEVICE_KEY" /></div></label>
+                {transportProtocol === 'TCP_CONNECTOR' && <>
+                  <div className="nova-form-grid">
+                    <label><span>URL connector lấy log</span><input name="pullUrl" type="url" defaultValue={config.pullUrl} placeholder="http://host.docker.internal:8090/api/attendance/pull" required /></label>
+                    <label><span>URL connector nạp nhân viên</span><input name="pushUrl" type="url" defaultValue={config.pushUrl} placeholder="http://host.docker.internal:8090/api/attendance/users" /></label>
+                  </div>
+                  <label><span>Tên biến môi trường chứa Bearer token connector</span><div className="nova-field"><Icon name="lock" /><input name="pullTokenEnv" defaultValue={secrets.pullTokenEnv} pattern="[A-Z][A-Z0-9_]{2,127}" placeholder="ERP_ATTENDANCE_CONNECTOR_TOKEN" /></div></label>
+                </>}
+                <div className="nova-info-note"><Icon name="alert" /><span>Chế độ TCP/IP dùng connector chạy SDK của hãng để đọc log và nạp nhân viên. URL nạp nhân viên chỉ bắt buộc khi sử dụng chức năng Quản lý máy; AMIS Chấm công không bị thay đổi.</span></div>
               </>
             )}
             <div className="nova-info-note"><Icon name="shield" /><span>Giá trị secret phải được cấu hình trong môi trường chạy backend. Giao diện này chỉ lưu tên biến để không làm lộ thông tin nhạy cảm.</span></div>

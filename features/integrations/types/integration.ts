@@ -2,8 +2,10 @@ export type ConnectionType =
   | 'SMTP'
   | 'FILE_SERVER'
   | 'GOOGLE_DRIVE'
+  | 'AMIS_HR'
   | 'AMIS_TIMESHEET'
-  | 'AMIS_ACCOUNTING';
+  | 'AMIS_ACCOUNTING'
+  | 'ATTENDANCE_DEVICE';
 export type ConnectionTestStatus = 'NOT_TESTED' | 'SUCCESS' | 'FAILED';
 
 export type IntegrationConnection = {

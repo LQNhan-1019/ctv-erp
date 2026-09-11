@@ -153,8 +153,17 @@ export default function RoleManagement() {
     });
   }
 
+  function togglePermissions(permissionIds: string[]) {
+    setSelectedPermissionIds((current) => {
+      const next = new Set(current);
+      const allSelected = permissionIds.length > 0 && permissionIds.every((id) => next.has(id));
+      permissionIds.forEach((id) => allSelected ? next.delete(id) : next.add(id));
+      return next;
+    });
+  }
+
   async function save() {
-    if (!selectedRole || selectedRole.systemRole) return;
+    if (!selectedRole) return;
     setSaving(true);
     setError('');
     try {
@@ -211,24 +220,24 @@ export default function RoleManagement() {
             <>
               <header>
                 <div><p>CHI TIẾT VAI TRÒ</p><h2>{selectedRole.name}</h2><span>{selectedRole.code}</span></div>
-                <button className="nova-button primary" onClick={() => void save()} disabled={saving || selectedRole.systemRole}><Icon name="save" />{saving ? 'Đang lưu…' : 'Lưu thay đổi'}</button>
+                <button className="nova-button primary" onClick={() => void save()} disabled={saving}><Icon name="save" />{saving ? 'Đang lưu…' : 'Lưu thay đổi'}</button>
               </header>
-              {selectedRole.systemRole && <div className="nova-info-note"><Icon name="shield" /><span>Đây là vai trò hệ thống. Thông tin và tập quyền được khóa để bảo vệ quyền quản trị nền tảng.</span></div>}
+              {selectedRole.systemRole && <div className="nova-info-note"><Icon name="shield" /><span>Vai trò hệ thống được phép sửa tên, mô tả và tập quyền. Riêng SYSTEM_ADMIN phải giữ SECURITY.MANAGE và không thể tạm dừng để tránh khóa toàn bộ quản trị viên.</span></div>}
               <div className="nova-role-fields">
-                <label><span>Tên hiển thị</span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={128} disabled={selectedRole.systemRole} /></label>
+                <label><span>Tên hiển thị</span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={128} /></label>
                 <label><span>Trạng thái</span><select value={active ? 'ACTIVE' : 'INACTIVE'} onChange={(event) => setActive(event.target.value === 'ACTIVE')} disabled={selectedRole.systemRole}><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Tạm dừng</option></select></label>
-                <label className="wide"><span>Mô tả</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} maxLength={1000} disabled={selectedRole.systemRole} /></label>
+                <label className="wide"><span>Mô tả</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} maxLength={1000} /></label>
               </div>
-              <div className="nova-permission-heading"><div><p>PERMISSIONS</p><h3>Chức năng được sử dụng</h3></div><span>{selectedPermissionIds.size}/{permissions.length} quyền</span></div>
+              <div className="nova-permission-heading"><div><p>PERMISSIONS</p><h3>Chức năng được sử dụng</h3></div><div className="nova-permission-bulk"><span>{selectedPermissionIds.size}/{permissions.length} quyền</span><button type="button" onClick={() => togglePermissions(permissions.map((permission) => permission.id))} disabled={permissionLoading}>{permissions.length > 0 && permissions.every((permission) => selectedPermissionIds.has(permission.id)) ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}</button></div></div>
               <div className="nova-permission-groups">
                 {permissionLoading && <div className="nova-inline-loading"><span className="nova-session-spinner" />Đang tải quyền…</div>}
                 {!permissionLoading && Object.entries(groupedPermissions).map(([module, items]) => (
                   <section key={module}>
-                    <header><div><span><Icon name="shield" /></span><div><b>{module}</b><small>{items.filter((item) => selectedPermissionIds.has(item.id)).length}/{items.length} quyền đã chọn</small></div></div></header>
+                    <header><div><span><Icon name="shield" /></span><div><b>{module}</b><small>{items.filter((item) => selectedPermissionIds.has(item.id)).length}/{items.length} quyền đã chọn</small></div></div><button type="button" className="nova-permission-module-toggle" onClick={() => togglePermissions(items.map((item) => item.id))}>{items.every((item) => selectedPermissionIds.has(item.id)) ? 'Bỏ chọn' : 'Chọn nhóm'}</button></header>
                     <div>
                       {items.map((permission) => (
                         <label key={permission.id} className={selectedPermissionIds.has(permission.id) ? 'selected' : ''}>
-                          <input type="checkbox" checked={selectedPermissionIds.has(permission.id)} onChange={() => togglePermission(permission.id)} disabled={selectedRole.systemRole} />
+                          <input type="checkbox" checked={selectedPermissionIds.has(permission.id)} onChange={() => togglePermission(permission.id)} />
                           <span><b>{permission.name}</b><code>{permission.code}</code><small>{permission.description || 'Quyền thao tác trong module ' + module}</small></span>
                         </label>
                       ))}

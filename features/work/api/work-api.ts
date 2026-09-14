@@ -1,8 +1,12 @@
 import type { ApiRequestOptions } from '@/lib/api/client';
-import type { CatalogInput, EmployeeOption, WorkCatalog, WorkDashboard, WorkImportInput, WorkImportPreview, WorkImportResult, WorkItemInput, WorkPlan } from '../types/work';
+import type { CatalogImportInput, CatalogImportPreview, CatalogImportResult, CatalogInput, CategoryInput, EmployeeOption, WorkCatalog, WorkCategory, WorkDashboard, WorkImportInput, WorkImportPreview, WorkImportResult, WorkItemInput, WorkPlan } from '../types/work';
 type Request = <T>(path:string, options?:ApiRequestOptions)=>Promise<T>;
 export const listWorkEmployees=(request:Request)=>request<EmployeeOption[]>('/api/hr/work/employees');
 export const getWorkDashboard=(request:Request,month:string)=>request<WorkDashboard>(`/api/hr/work/dashboard?month=${month}`);
+export const listCategories=(request:Request,all=false)=>request<WorkCategory[]>(`/api/hr/work/categories?includeInactive=${all}`);
+export const createCategory=(request:Request,body:CategoryInput)=>request<WorkCategory>('/api/hr/work/categories',{method:'POST',body});
+export const updateCategory=(request:Request,id:string,body:CategoryInput)=>request<WorkCategory>(`/api/hr/work/categories/${id}`,{method:'PUT',body});
+export const deleteCategory=(request:Request,id:string)=>request<void>(`/api/hr/work/categories/${id}`,{method:'DELETE'});
 export const listCatalogs=(request:Request,all=false)=>request<WorkCatalog[]>(`/api/hr/work/catalogs?includeInactive=${all}`);
 export const createCatalog=(request:Request,body:CatalogInput)=>request<WorkCatalog>('/api/hr/work/catalogs',{method:'POST',body});
 export const updateCatalog=(request:Request,id:string,body:CatalogInput)=>request<WorkCatalog>(`/api/hr/work/catalogs/${id}`,{method:'PUT',body});
@@ -12,6 +16,7 @@ export const createPlan=(request:Request,employeeId:string,month:string,notes:st
 export const updatePlan=(request:Request,id:string,notes:string|null)=>request<WorkPlan>(`/api/hr/work/plans/${id}`,{method:'PUT',body:{notes}});
 export const deletePlan=(request:Request,id:string)=>request<void>(`/api/hr/work/plans/${id}`,{method:'DELETE'});
 export const createItem=(request:Request,planId:string,body:WorkItemInput)=>request<WorkPlan>(`/api/hr/work/plans/${planId}/items`,{method:'POST',body});
+export const createItemsFromCatalog=(request:Request,planId:string,catalogItemIds:string[])=>request<WorkPlan>(`/api/hr/work/plans/${planId}/items/bulk-from-catalog`,{method:'POST',body:{catalogItemIds}});
 export const updateItem=(request:Request,id:string,body:WorkItemInput)=>request<WorkPlan>(`/api/hr/work/items/${id}`,{method:'PUT',body});
 export const deleteItem=(request:Request,id:string)=>request<void>(`/api/hr/work/items/${id}`,{method:'DELETE'});
 export const saveDaily=(request:Request,itemId:string,body:{workDate:string;quantity:number;progressPercent:number|null;details:string|null;blockers:string|null;evidenceUrl:string|null})=>request<WorkPlan>(`/api/hr/work/items/${itemId}/daily`,{method:'PUT',body});
@@ -21,3 +26,5 @@ export const approvePlan=(request:Request,id:string,comments:string|null)=>reque
 export const rejectPlan=(request:Request,id:string,comments:string)=>request<WorkPlan>(`/api/hr/work/plans/${id}/reject`,{method:'POST',body:{comments}});
 export const previewWorkImport=(request:Request,body:WorkImportInput)=>request<WorkImportPreview>('/api/hr/work/import/preview',{method:'POST',body});
 export const importWorkWorkbook=(request:Request,body:WorkImportInput)=>request<WorkImportResult>('/api/hr/work/import',{method:'POST',body});
+export const previewCatalogImport=(request:Request,body:CatalogImportInput)=>request<CatalogImportPreview>('/api/hr/work/catalogs/import/preview',{method:'POST',body});
+export const importCatalogWorkbook=(request:Request,body:CatalogImportInput)=>request<CatalogImportResult>('/api/hr/work/catalogs/import',{method:'POST',body});

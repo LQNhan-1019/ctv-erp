@@ -1,8 +1,9 @@
 export type AttendanceShift = {
   id: string; code: string; name: string; businessUnitId: string | null;
   businessUnitName: string | null; startTime: string; endTime: string;
-  breakStartTime: string | null; breakEndTime: string | null; crossesMidnight: boolean;
+  hasBreak: boolean; breakStartTime: string | null; breakEndTime: string | null; crossesMidnight: boolean;
   lateGraceMinutes: number; earlyLeaveGraceMinutes: number;
+  deductLateEarly: boolean;
   fullDayMinutes: number; halfDayMinutes: number; active: boolean;
 };
 export type EmployeeOption = {

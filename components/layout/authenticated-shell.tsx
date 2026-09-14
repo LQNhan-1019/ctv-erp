@@ -14,6 +14,9 @@ type ShellGroup = { label: string; items: ShellLink[] };
 const routeMap: Record<string, string> = {
   '/home': '/home',
   '/dashboard': '/dashboard',
+  '/dashboard/sales': '/dashboard/sales',
+  '/dashboard/accounting': '/dashboard/accounting',
+  '/dashboard/hr-admin': '/dashboard/hr-admin',
   '/performance/goals': '/performance/goals',
   '/performance/data-entry': '/performance/data-entry',
   '/security/users': '/accounts',
@@ -32,6 +35,9 @@ const routeMap: Record<string, string> = {
 const iconByCode: Record<string, IconName> = {
   NAV_DASHBOARD: 'dashboard',
   NAV_DASHBOARD_EXECUTIVE: 'dashboard',
+  NAV_DASHBOARD_SALES: 'target',
+  NAV_DASHBOARD_ACCOUNTING: 'database',
+  NAV_DASHBOARD_HR_ADMIN: 'users',
   NAV_PERFORMANCE_GOALS: 'target',
   NAV_PERFORMANCE_DATA_ENTRY: 'table',
   NAV_SECURITY_USERS: 'users',
@@ -56,6 +62,9 @@ const pageHeadings: Record<string, { eyebrow: string; title: string }> = {
   '/system/integrations': { eyebrow: 'CẤU HÌNH NỀN TẢNG', title: 'Kết nối dịch vụ' },
   '/system/backups': { eyebrow: 'AN TOÀN DỮ LIỆU', title: 'Sao lưu dữ liệu' },
   '/dashboard': { eyebrow: 'TỔNG QUAN', title: 'Dashboard ERP' },
+  '/dashboard/sales': { eyebrow: 'KINH DOANH', title: 'Dashboard Kinh doanh' },
+  '/dashboard/accounting': { eyebrow: 'TÀI CHÍNH KẾ TOÁN', title: 'Dashboard Tài chính - Kế toán' },
+  '/dashboard/hr-admin': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Dashboard HCNS' },
   '/performance/goals': { eyebrow: 'HIỆU SUẤT', title: 'Mục tiêu KPI / OKR' },
   '/performance/data-entry': { eyebrow: 'HIỆU SUẤT', title: 'Nhập số liệu theo ngày' },
   '/hr/employees': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Nhân viên và phòng ban' },
@@ -115,11 +124,13 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
   if (permissions.includes('ADMIN.DOCUMENT.VIEW')) humanResources.push({ href: '/admin/documents', label: 'Hồ sơ & thời hạn', icon: 'calendar' });
   if (permissions.includes('ADMIN.WORK.VIEW')) humanResources.push({ href: '/admin/work-items', label: 'Quản lý công việc', icon: 'clipboard' });
 
-  const dashboard = permissions.includes('PERFORMANCE.DASHBOARD.VIEW')
-    ? [{ href: '/dashboard', label: 'Dashboard ERP', icon: 'dashboard' as IconName }]
-    : [];
+  const dashboard: ShellLink[] = [];
+  if (permissions.includes('PERFORMANCE.DASHBOARD.VIEW')) dashboard.push({ href: '/dashboard', label: 'Dashboard điều hành', icon: 'dashboard' });
+  if (permissions.includes('DASHBOARD.SALES.VIEW')) dashboard.push({ href: '/dashboard/sales', label: 'Dashboard Kinh doanh', icon: 'target' });
+  if (permissions.includes('DASHBOARD.ACCOUNTING.VIEW')) dashboard.push({ href: '/dashboard/accounting', label: 'Dashboard Tài chính', icon: 'database' });
+  if (permissions.includes('DASHBOARD.HR_ADMIN.VIEW')) dashboard.push({ href: '/dashboard/hr-admin', label: 'Dashboard HCNS', icon: 'users' });
   const groups: ShellGroup[] = [
-    { label: 'TỔNG QUAN', items: dashboard },
+    { label: 'DASHBOARD PHÒNG BAN', items: dashboard },
     { label: 'MỤC TIÊU & HIỆU SUẤT', items: performance },
     { label: 'HÀNH CHÍNH NHÂN SỰ', items: humanResources },
     { label: 'QUẢN TRỊ TRUY CẬP', items: access },

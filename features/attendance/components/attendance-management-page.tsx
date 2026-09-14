@@ -4,7 +4,8 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import Icon from '@/components/ui/icon';
 import type { ApiRequestOptions } from '@/lib/api/client';
 import { useAuth } from '@/features/auth/context/auth-context';
-import ShiftSchedulingPanel from './shift-scheduling-panel';
+import ShiftDefinitionPanel from './shift-definition-panel';
+import ShiftAssignmentPanel from './shift-assignment-panel';
 import AttendanceExportDialog from './attendance-export-dialog';
 import AttendanceImportDialog from './attendance-import-dialog';
 import {
@@ -14,7 +15,7 @@ import {
 import type { AttendanceDashboard, AttendanceIdentifier, AttendanceImportResult, AttendanceShift, AttendanceSource, DailyAttendance, EmployeeOption, Timesheet } from '../types/attendance';
 type Request = <T>(path: string, options?: ApiRequestOptions) => Promise<T>;
 
-type Tab = 'overview' | 'timesheet' | 'shifts' | 'sync';
+type Tab = 'overview' | 'timesheet' | 'shiftDefinitions' | 'scheduling' | 'sync';
 const statusLabels: Record<string, string> = {
   PRESENT: 'Đủ công', LATE: 'Đi trễ', ABSENT: 'Vắng', MISSING_CHECK_IN: 'Quên check-in',
   MISSING_CHECK_OUT: 'Quên check-out', SCHEDULED: 'Đã xếp ca', OFF_DAY: 'Nghỉ tuần',
@@ -34,6 +35,7 @@ export default function AttendanceManagementPage() {
   const canImport = user?.permissions.includes('HR.ATTENDANCE.IMPORT') ?? false;
   const [tab, setTab] = useState<Tab>('overview');
   const [month, setMonth] = useState(currentMonth);
+  const [businessUnitId, setBusinessUnitId] = useState('');
   const [dashboard, setDashboard] = useState<AttendanceDashboard | null>(null);
   const [timesheet, setTimesheet] = useState<Timesheet | null>(null);
   const [shifts, setShifts] = useState<AttendanceShift[]>([]);
@@ -52,7 +54,7 @@ export default function AttendanceManagementPage() {
     setLoading(true); setError('');
     try {
       const [overview, sheet, shiftItems, employeeItems, sourceItems] = await Promise.allSettled([
-        getAttendanceDashboard(request, month), getTimesheet(request, month), listShifts(request),
+        getAttendanceDashboard(request, month), getTimesheet(request, month, businessUnitId), listShifts(request),
         (canManage || canExport || canImport || canSync) ? listEmployees(request) : Promise.resolve([]),
         canSync ? listSources(request) : Promise.resolve([]),
       ]);
@@ -66,10 +68,11 @@ export default function AttendanceManagementPage() {
       if (failed) throw failed.reason;
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không tải được dữ liệu chấm công'); }
     finally { setLoading(false); }
-  }, [canExport, canImport, canManage, canSync, canView, month, request]);
+  }, [businessUnitId, canExport, canImport, canManage, canSync, canView, month, request]);
 
   useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [load]);
   const dayNumbers = useMemo(() => Array.from({ length: timesheet?.daysInMonth ?? 0 }, (_, index) => index + 1), [timesheet]);
+  const departments=useMemo(()=>Array.from(new Map(employees.map(item=>[item.businessUnitId,item.businessUnitName])).entries()),[employees]);
 
   async function execute(label: string, action: () => Promise<unknown>) {
     setBusy(label); setError(''); setMessage('');
@@ -110,20 +113,21 @@ export default function AttendanceManagementPage() {
       <div><p className="nova-eyebrow">CHẤM CÔNG & PHÂN CA</p><h1>Trung tâm chấm công</h1><span>Dữ liệu AMIS và file Excel được chuẩn hóa trước khi tự động tính công.</span></div>
       <div className="attendance-actions"><input aria-label="Tháng" type="month" value={month} onChange={(event) => setMonth(event.target.value)} />{canImport && <button className="nova-button secondary" onClick={() => setImportOpen(true)}><Icon name="upload" />Import Excel</button>}{canExport && <button className="nova-button primary" disabled={busy === 'export'} onClick={() => setExportOpen(true)}><Icon name="download" />Xuất Excel</button>}</div>
     </header>
-    <nav className="attendance-tabs">{([['overview', 'Tổng quan'], ['timesheet', 'Bảng công'], ['shifts', 'Ca & phân ca'], ['sync', 'Nguồn dữ liệu']] as const).map(([value, label]) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}>{label}</button>)}</nav>
+    <nav className="attendance-tabs">{([['overview', 'Tổng quan'], ['timesheet', 'Bảng công'], ['shiftDefinitions', 'Tạo ca'], ['scheduling', 'Phân ca'], ['sync', 'Nguồn dữ liệu']] as const).map(([value, label]) => <button key={value} className={tab === value ? 'active' : ''} onClick={() => setTab(value)}>{label}</button>)}</nav>
     {error && <div className="performance-error"><Icon name="alert" />{error}</div>}
     {message && <div className="performance-success"><Icon name="check" />{message}</div>}
     {loading && <div className="performance-state"><span className="nova-session-spinner" />Đang tổng hợp dữ liệu…</div>}
 
     {!loading && tab === 'overview' && dashboard && <Overview data={dashboard} />}
     {!loading && tab === 'timesheet' && timesheet && <section className="attendance-panel">
-      <header><div><h2>Bảng công tháng {Number(month.slice(5))}</h2><p>Nhấn vào ô có dữ liệu để xem giờ vào/ra và hiệu chỉnh.</p></div></header>
+      <header><div><h2>Bảng công tháng {Number(month.slice(5))}</h2><p>Nhấn vào ô có dữ liệu để xem giờ vào/ra và hiệu chỉnh.</p></div><label className="attendance-department-filter"><span>Phòng ban</span><select value={businessUnitId} onChange={event=>setBusinessUnitId(event.target.value)}><option value="">Tất cả phòng ban</option>{departments.map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label></header>
       <div className="attendance-grid-wrap"><table className="attendance-grid"><thead><tr><th className="sticky employee">Nhân viên</th>{dayNumbers.map((day) => <th key={day}>{day}</th>)}<th>Tổng công</th></tr></thead><tbody>
         {timesheet.employees.map((employee) => { const byDay = new Map(employee.days.map((day) => [Number(day.workDate.slice(-2)), day])); return <tr key={employee.employeeId}><th className="sticky employee"><b>{employee.fullName}</b><small>{employee.employeeCode} · {employee.departmentName}</small></th>{dayNumbers.map((number) => { const day = byDay.get(number); return <td key={number}>{day ? <button title={`${statusLabels[day.status] ?? day.status} · ${time(day.checkIn)}–${time(day.checkOut)}`} className={`attendance-code ${day.status.toLowerCase()}`} onClick={() => canAdjust && setEditingDay(day)}>{day.workCode ?? (day.status === 'ABSENT' ? 'V' : '!')}</button> : '—'}</td>; })}<td className="attendance-total">{employee.payrollDays}</td></tr>; })}
       </tbody></table></div>
     </section>}
 
-    {!loading && tab === 'shifts' && (canManage ? <ShiftSchedulingPanel request={request} shifts={shifts} employees={employees} busy={busy} execute={execute} /> : <section className="attendance-panel"><p>Bạn chỉ có quyền xem ca làm việc.</p></section>)}
+    {!loading && tab === 'shiftDefinitions' && (canManage ? <ShiftDefinitionPanel request={request} shifts={shifts} busy={busy} execute={execute} /> : <section className="attendance-panel"><p>Bạn chỉ có quyền xem ca làm việc.</p></section>)}
+    {!loading && tab === 'scheduling' && (canManage ? <ShiftAssignmentPanel request={request} shifts={shifts} employees={employees} busy={busy} execute={execute} /> : <section className="attendance-panel"><p>Bạn không có quyền phân ca.</p></section>)}
 
     {!loading && tab === 'sync' && <SyncPanel request={request} sources={sources} employees={employees} canSync={canSync} busy={busy} execute={execute} />}
     {editingDay && <div className="nova-overlay"><section className="nova-dialog attendance-adjust"><header><div><p>HIỆU CHỈNH CHẤM CÔNG</p><h2>{editingDay.workDate}</h2><span>Mọi thay đổi đều được lưu lịch sử và nhật ký hoạt động.</span></div><button onClick={() => setEditingDay(null)}><Icon name="x" /></button></header><form onSubmit={submitAdjustment}><div className="nova-dialog-body"><label><span>Giờ vào</span><input name="checkIn" type="datetime-local" defaultValue={localInput(editingDay.checkIn)} /></label><label><span>Giờ ra</span><input name="checkOut" type="datetime-local" defaultValue={localInput(editingDay.checkOut)} /></label><label><span>Lý do</span><textarea className="nova-textarea" name="reason" required maxLength={500} /></label></div><footer><button type="button" className="nova-button secondary" onClick={() => setEditingDay(null)}>Hủy</button><button className="nova-button primary"><Icon name="save" />Lưu hiệu chỉnh</button></footer></form></section></div>}

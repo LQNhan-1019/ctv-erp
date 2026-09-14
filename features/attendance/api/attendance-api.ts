@@ -2,7 +2,7 @@ import type { ApiRequestOptions } from '@/lib/api/client';
 import type { AttendanceDashboard, AttendanceDeleteResult, AttendanceIdentifier, AttendanceImportPreview, AttendanceImportResult, AttendanceShift, AttendanceSource, DailyAttendance, DeviceEmployeePushResult, EmployeeOption, ExportTemplate, ScheduleRule, Timesheet, WorkbookMapping, WorkbookPreview } from '../types/attendance';
 type Request = <T>(path: string, options?: ApiRequestOptions) => Promise<T>;
 export const getAttendanceDashboard = (request: Request, month: string) => request<AttendanceDashboard>(`/api/hr/attendance/dashboard?month=${month}`);
-export const getTimesheet = (request: Request, month: string) => request<Timesheet>(`/api/hr/attendance/timesheet?month=${month}`);
+export const getTimesheet = (request: Request, month: string, businessUnitId = '') => request<Timesheet>(`/api/hr/attendance/timesheet?month=${month}${businessUnitId ? `&businessUnitId=${encodeURIComponent(businessUnitId)}` : ''}`);
 export const listShifts = (request: Request) => request<AttendanceShift[]>('/api/hr/attendance/shifts?includeInactive=true');
 export const listEmployees = (request: Request) => request<EmployeeOption[]>('/api/hr/attendance/employees');
 export const listSources = (request: Request) => request<AttendanceSource[]>('/api/hr/attendance/sources');

@@ -5,11 +5,13 @@ import Icon, { type IconName } from '@/components/ui/icon';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { listSystemSettings, updateSystemSetting } from '../api/settings-api';
 import type { SystemSetting } from '../types/setting';
+import DashboardLayoutEditor from './dashboard-layout-editor';
 
 const groupMetadata: Record<string, { label: string; description: string; icon: IconName }> = {
   ORGANIZATION: { label: 'Thông tin doanh nghiệp', description: 'Thông tin pháp lý và liên hệ hiển thị xuyên suốt ERP.', icon: 'users' },
   SYSTEM: { label: 'Thiết lập vận hành', description: 'Múi giờ và quy ước hiển thị dùng chung.', icon: 'settings' },
   DOCUMENT: { label: 'Hồ sơ & thời hạn', description: 'Cấu hình cảnh báo bảo hiểm, hợp đồng và giấy tờ.', icon: 'clock' },
+  DASHBOARD: { label: 'Giao diện dashboard', description: 'Kéo thả, sắp xếp và ẩn hiện các khối dashboard theo nhu cầu điều hành.', icon: 'dashboard' },
 };
 
 function formatUpdatedAt(value: string) {
@@ -107,7 +109,7 @@ export default function SystemSettingsPage() {
                 <div><span><Icon name={(groupMetadata[activeGroup]?.icon ?? 'settings')} /></span><div><p>{activeGroup}</p><h2>{groupMetadata[activeGroup]?.label ?? activeGroup}</h2><small>{groupMetadata[activeGroup]?.description}</small></div></div>
                 {!canManage && <em>Chỉ xem</em>}
               </header>
-              <div className="nova-setting-list">
+              {activeGroup === 'DASHBOARD' ? <DashboardLayoutEditor request={request} canManage={canManage} /> : <div className="nova-setting-list">
                 {visibleSettings.map((setting) => {
                   const changed = drafts[setting.key] !== setting.value;
                   const numeric = setting.valueType === 'INTEGER' || setting.valueType === 'DECIMAL';
@@ -134,7 +136,7 @@ export default function SystemSettingsPage() {
                     </article>
                   );
                 })}
-              </div>
+              </div>}
             </>
           )}
         </section>

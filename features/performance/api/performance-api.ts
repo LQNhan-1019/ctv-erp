@@ -11,6 +11,9 @@ import type {
 export const getPerformanceDashboard = (request: AuthorizedRequest, month: string) =>
   request<DashboardData>(`/api/performance/dashboard?month=${encodeURIComponent(month)}`);
 
+export const getDepartmentDashboard = (request: AuthorizedRequest, scope: 'sales' | 'accounting' | 'hr-admin', month: string) =>
+  request<DashboardData>(`/api/performance/dashboard/${scope}?month=${encodeURIComponent(month)}`);
+
 export const listPerformanceMetrics = (request: AuthorizedRequest) =>
   request<PerformanceMetric[]>('/api/performance/metrics');
 

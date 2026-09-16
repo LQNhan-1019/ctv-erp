@@ -1,13 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import {
-  BadgeDollarSign, BriefcaseBusiness, CircleDollarSign, ClipboardCheck,
-  Droplets, Gauge, Landmark, RefreshCw, ShoppingCart, Store, TrendingUp, Truck,
-  UsersRound, WalletCards,
-} from 'lucide-react';
-import Icon from '@/components/ui/icon';
+import { useMemo, useState } from 'react';
+import { BadgeDollarSign, BriefcaseBusiness, CircleDollarSign, ClipboardCheck, Droplets, Gauge, Landmark, RefreshCw, ShoppingCart, Store, TrendingUp, TriangleAlert, Truck, UsersRound, WalletCards } from 'lucide-react';
 import { useAuth } from '@/features/auth/context/auth-context';
+import { useApiResource } from '@/lib/api/use-api-resource';
 import { getPerformanceDashboard } from '../api/performance-api';
 import type { DashboardData, DashboardMetric, MeasurementUnit } from '../types/performance';
 import {
@@ -49,21 +45,11 @@ export default function PerformanceDashboard() {
   const [month, setMonth] = useState(currentMonth);
   const [compareMonth, setCompareMonth] = useState('');
   const [region, setRegion] = useState('');
-  const [reload, setReload] = useState(0);
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-    getPerformanceDashboard(request, month).then(value => {
-      if (!active) return;
-      setData(value);
-      setCompareMonth(current => value.businessResults.some(item => item.month === current) ? current : value.businessResults.filter(item => item.month !== month).at(-1)?.month ?? '');
-    }).catch((reason: Error) => { if (active) setError(reason.message); }).finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, [month, reload, request]);
-  function refreshDashboard() { setLoading(true); setError(''); setReload(value => value + 1); }
+  const { data, error, loading, refresh: refreshDashboard } = useApiResource<DashboardData>({
+    key: `performance-dashboard:${month}`,
+    load: () => getPerformanceDashboard(request, month),
+    onSuccess: (value) => setCompareMonth((current) => value.businessResults.some((item) => item.month === current) ? current : value.businessResults.filter((item) => item.month !== month).at(-1)?.month ?? ''),
+  });
 
   const metrics = useMemo(() => data?.metrics ?? [], [data]);
   const results = data?.businessResults ?? [];
@@ -109,7 +95,7 @@ export default function PerformanceDashboard() {
 
   return <div className="nova-account-page executive-page">
     <header className="executive-header"><div><p className="nova-eyebrow">CTV · EXECUTIVE DASHBOARD</p><h1>Tổng quan công ty</h1><span>Tổng hợp kết quả điều hành theo từng phòng ban, mục tiêu và đơn vị vận hành.</span></div><div className="executive-controls">
-      <label><span>Kỳ báo cáo</span><input type="month" value={month} onChange={event => { setLoading(true); setError(''); setMonth(event.target.value); }}/></label>
+      <label><span>Kỳ báo cáo</span><input type="month" value={month} onChange={event => setMonth(event.target.value)}/></label>
       <label><span>So sánh</span><select value={compareMonth} onChange={event => setCompareMonth(event.target.value)}><option value="">Không so sánh</option>{results.filter(item => item.month !== month).map(item => <option key={item.month} value={item.month}>Tháng {Number(item.month.slice(5))}/{item.month.slice(0, 4)}</option>)}</select></label>
       <label><span>Khu vực</span><select value={region} onChange={event => setRegion(event.target.value)}><option value="">Tất cả khu vực</option>{regions.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
       <button type="button" onClick={refreshDashboard} disabled={loading}><RefreshCw size={17} className={loading ? 'spinning' : ''}/><span>Cập nhật lần cuối<small>{formatDateTime(data?.generatedAt)}</small></span></button>
@@ -117,7 +103,7 @@ export default function PerformanceDashboard() {
 
     <nav className="executive-jump"><span>Xem nhanh</span><a href="#company">Toàn công ty</a><a href="#finance">Tài chính</a><a href="#sales">Kinh doanh</a><a href="#hr">HCNS</a><a href="#assistant">Trợ lý / Thư ký</a></nav>
     {loading && <div className="performance-state"><span className="nova-session-spinner"/>Đang tổng hợp dữ liệu điều hành…</div>}
-    {error && <div className="performance-error"><Icon name="alert"/>{error}<button className="nova-button secondary" onClick={refreshDashboard}>Thử lại</button></div>}
+    {error && <div className="performance-error"><TriangleAlert/>{error}<button className="nova-button secondary" onClick={refreshDashboard}>Thử lại</button></div>}
 
     {!loading && !error && <>
       <DashboardSection id="company" eyebrow="KẾT QUẢ KINH DOANH TỔNG HỢP" title="Các chỉ số cần xem ngay" description={`Kỳ ${monthLabel(month)} · ${metrics.length} chỉ số · ${new Set(metrics.filter(item => item.actualValue !== 0).map(item => item.departmentCode)).size} phòng ban đã cập nhật`} tone="blue" style={layoutStyle(dashboardLayout, 'company-overview')}>

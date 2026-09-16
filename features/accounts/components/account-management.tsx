@@ -1,7 +1,7 @@
 'use client';
 
+import { Check, Plus, RefreshCw, Search, ShieldCheck, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import Icon from '@/components/ui/icon';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { createAccount, listAccounts, listRoles, updateAccountStatus } from '../api/accounts-api';
 import type { CreateAccountInput, Role, UserAccount, UserStatus } from '../types/account';
@@ -113,7 +113,7 @@ export default function AccountManagement() {
   if (!canManage) {
     return (
       <section className="nova-access-denied">
-        <span><Icon name="shield" /></span><p>KHÔNG ĐỦ QUYỀN</p><h1>Bạn không thể quản lý tài khoản.</h1><div>Tài khoản hiện tại chưa được cấp permission <code>SECURITY.MANAGE</code>.</div>
+        <span><ShieldCheck /></span><p>KHÔNG ĐỦ QUYỀN</p><h1>Bạn không thể quản lý tài khoản.</h1><div>Tài khoản hiện tại chưa được cấp permission <code>SECURITY.MANAGE</code>.</div>
       </section>
     );
   }
@@ -122,7 +122,7 @@ export default function AccountManagement() {
     <div className="nova-account-page">
       <header className="nova-page-header">
         <div><p className="nova-eyebrow">BẢO MẬT & PHÂN QUYỀN</p><h1>Quản lý tài khoản</h1><span>Kiểm soát danh tính, trạng thái truy cập và vai trò trên toàn hệ thống.</span></div>
-        <button className="nova-button primary" onClick={() => setCreateOpen(true)}><Icon name="plus" />Thêm tài khoản</button>
+        <button className="nova-button primary" onClick={() => setCreateOpen(true)}><Plus />Thêm tài khoản</button>
       </header>
 
       <section className="nova-account-metrics" aria-label="Tổng quan tài khoản">
@@ -134,11 +134,11 @@ export default function AccountManagement() {
 
       <section className="nova-account-panel">
         <div className="nova-account-toolbar">
-          <div className="nova-account-search"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên đăng nhập hoặc email…" /></div>
+          <div className="nova-account-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên đăng nhập hoặc email…" /></div>
           <div className="nova-status-tabs">
             {([['ALL', 'Tất cả'], ['ACTIVE', 'Hoạt động'], ['LOCKED', 'Đã khóa'], ['INACTIVE', 'Tạm dừng']] as const).map(([value, label]) => <button key={value} onClick={() => setStatusFilter(value)} className={statusFilter === value ? 'active' : ''}>{label}</button>)}
           </div>
-          <button className="nova-refresh-button" onClick={() => void load(true)} disabled={refreshing} title="Làm mới"><Icon name="refresh" className={refreshing ? 'spin' : ''} /></button>
+          <button className="nova-refresh-button" onClick={() => void load(true)} disabled={refreshing} title="Làm mới"><RefreshCw className={refreshing ? 'spin' : ''} /></button>
         </div>
 
         {error && <div className="nova-panel-error"><span>{error}</span><button onClick={() => void load()}>Thử lại</button></div>}
@@ -151,17 +151,17 @@ export default function AccountManagement() {
               <span><em className={`nova-status ${account.status.toLowerCase()}`}><i />{statusLabel[account.status]}</em></span>
               <span className="nova-cell-date">{formatDate(account.lastLoginAt)}<small>{account.failedLoginAttempts > 0 ? `${account.failedLoginAttempts} lần sai` : 'Đăng nhập bình thường'}</small></span>
               <span className="nova-cell-date">{formatDate(account.createdAt)}<small>v{account.securityVersion} bảo mật</small></span>
-              <div className="nova-row-actions"><button onClick={() => setSelectedAccount(account)}><Icon name="shield" />Phân quyền</button><button className={account.status === 'ACTIVE' ? 'danger' : ''} onClick={() => void changeStatus(account)}>{account.status === 'ACTIVE' ? 'Tạm dừng' : 'Kích hoạt'}</button></div>
+              <div className="nova-row-actions"><button onClick={() => setSelectedAccount(account)}><ShieldCheck />Phân quyền</button><button className={account.status === 'ACTIVE' ? 'danger' : ''} onClick={() => void changeStatus(account)}>{account.status === 'ACTIVE' ? 'Tạm dừng' : 'Kích hoạt'}</button></div>
             </div>
           ))}
-          {!loading && filteredAccounts.length === 0 && <div className="nova-account-empty"><span><Icon name="users" /></span><b>Không tìm thấy tài khoản</b><p>Thử thay đổi từ khóa hoặc bộ lọc trạng thái.</p></div>}
+          {!loading && filteredAccounts.length === 0 && <div className="nova-account-empty"><span><Users /></span><b>Không tìm thấy tài khoản</b><p>Thử thay đổi từ khóa hoặc bộ lọc trạng thái.</p></div>}
         </div>
         <footer className="nova-table-footer"><span>Hiển thị <b>{filteredAccounts.length}</b> trên {accounts.length} tài khoản</span><span>Dữ liệu bảo mật được cập nhật trực tiếp từ backend</span></footer>
       </section>
 
       {createOpen && <CreateAccountDialog onClose={() => setCreateOpen(false)} onCreate={handleCreate} />}
       {selectedAccount && <AccountAccessDrawer key={selectedAccount.id} account={selectedAccount} roles={roles} request={request} onClose={() => setSelectedAccount(null)} />}
-      {toast && <div className="nova-admin-toast"><span><Icon name="check" /></span>{toast}</div>}
+      {toast && <div className="nova-admin-toast"><span><Check /></span>{toast}</div>}
     </div>
   );
 }

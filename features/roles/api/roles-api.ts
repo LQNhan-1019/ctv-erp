@@ -21,6 +21,10 @@ export function updateRole(request: AuthorizedRequest, roleId: string, input: Up
   return request<Role>('/api/security/roles/' + roleId, { method: 'PUT', body: input });
 }
 
+export function deleteRole(request: AuthorizedRequest, roleId: string) {
+  return request<void>('/api/security/roles/' + roleId, { method: 'DELETE' });
+}
+
 export function replaceRolePermissions(request: AuthorizedRequest, roleId: string, permissionIds: string[]) {
   return request<void>('/api/security/roles/' + roleId + '/permissions', {
     method: 'PUT',

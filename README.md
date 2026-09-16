@@ -1,6 +1,6 @@
-# NOVA ERP — Next.js frontend
+# CTV ERP — Next.js frontend
 
-Frontend quản trị NOVA ERP, kết nối backend Spring Boot qua JWT, refresh cookie HttpOnly và CSRF cookie.
+Frontend quản trị CTV ERP, kết nối backend Spring Boot qua JWT, refresh cookie HttpOnly và CSRF cookie.
 
 ## Chạy trên máy
 

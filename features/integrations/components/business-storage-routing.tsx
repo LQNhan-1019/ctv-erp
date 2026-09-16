@@ -1,7 +1,7 @@
 'use client';
 
+import { Check, Database, Folder, Pencil, Plus, RefreshCw, Save, Search, ShieldCheck, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import Icon from '@/components/ui/icon';
 import { useAuth } from '@/features/auth/context/auth-context';
 import {
   listBusinessStorageBindings,
@@ -94,7 +94,7 @@ function StorageBindingDialog({
       <section className="nova-dialog nova-storage-dialog" role="dialog" aria-modal="true" aria-labelledby="storage-dialog-title">
         <header>
           <div><p>ĐỊNH TUYẾN GOOGLE DRIVE</p><h2 id="storage-dialog-title">{businessFunction.label}</h2><span>{moduleLabels[businessFunction.module] ?? businessFunction.module} · {businessFunction.code}</span></div>
-          <button onClick={onClose} aria-label="Đóng"><Icon name="x" /></button>
+          <button onClick={onClose} aria-label="Đóng"><X /></button>
         </header>
         <form onSubmit={submit}>
           <div className="nova-dialog-body">
@@ -107,18 +107,18 @@ function StorageBindingDialog({
               {drives.length === 0 && <small className="nova-field-hint">Chưa có kết nối Google Drive. Hãy tạo kết nối ở phần phía trên trước.</small>}
             </label>
             <div className="nova-form-grid">
-              <label><span>Mã thư mục</span><div className="nova-field"><Icon name="folder" /><input name="folderCode" value={folderCode} onChange={(event) => setFolderCode(event.target.value)} minLength={2} maxLength={64} pattern="[A-Za-z][A-Za-z0-9_]{1,63}" placeholder="VD. PHCNS" required /></div></label>
-              <label><span>Tên thư mục</span><div className="nova-field"><Icon name="folder" /><input name="folderName" defaultValue={binding?.folderName ?? suggestion.name} maxLength={128} placeholder="Phòng HCNS" required /></div></label>
+              <label><span>Mã thư mục</span><div className="nova-field"><Folder /><input name="folderCode" value={folderCode} onChange={(event) => setFolderCode(event.target.value)} minLength={2} maxLength={64} pattern="[A-Za-z][A-Za-z0-9_]{1,63}" placeholder="VD. PHCNS" required /></div></label>
+              <label><span>Tên thư mục</span><div className="nova-field"><Folder /><input name="folderName" defaultValue={binding?.folderName ?? suggestion.name} maxLength={128} placeholder="Phòng HCNS" required /></div></label>
             </div>
             <label className="nova-switch-label"><span>Trạng thái định tuyến</span><div><input type="checkbox" name="active" defaultChecked={binding?.active ?? true} /><b>Cho phép chức năng sử dụng cấu hình này</b></div></label>
             <div className="nova-storage-path-preview">
-              <span><Icon name="database" /></span>
+              <span><Database /></span>
               <div><small>ĐƯỜNG DẪN CẤU HÌNH</small><b>{selectedDrive?.name ?? 'Google Drive'} / {previewFolderCode}</b><p>Chỉ tạo mã định tuyến; chưa tạo thư mục hay ghi file lên Google Drive.</p></div>
             </div>
-            <div className="nova-info-note"><Icon name="shield" /><span>Khi chức năng nghiệp vụ lưu tài liệu ở giai đoạn sau, backend sẽ dùng mapping này để chọn đúng kết nối và thư mục. Credential vẫn chỉ nằm trong biến môi trường.</span></div>
+            <div className="nova-info-note"><ShieldCheck /><span>Khi chức năng nghiệp vụ lưu tài liệu ở giai đoạn sau, backend sẽ dùng mapping này để chọn đúng kết nối và thư mục. Credential vẫn chỉ nằm trong biến môi trường.</span></div>
             {error && <div className="nova-form-error" role="alert">{error}</div>}
           </div>
-          <footer><button type="button" className="nova-button secondary" onClick={onClose}>Hủy</button><button type="submit" className="nova-button primary" disabled={submitting || !connectionId}><Icon name="save" />{submitting ? 'Đang lưu…' : 'Lưu định tuyến'}</button></footer>
+          <footer><button type="button" className="nova-button secondary" onClick={onClose}>Hủy</button><button type="submit" className="nova-button primary" disabled={submitting || !connectionId}><Save />{submitting ? 'Đang lưu…' : 'Lưu định tuyến'}</button></footer>
         </form>
       </section>
     </div>
@@ -199,11 +199,11 @@ export default function BusinessStorageRouting({ connections, canManage }: {
         <div><p>LƯU TRỮ THEO CHỨC NĂNG</p><h2>Định tuyến dữ liệu nghiệp vụ</h2><span>Chọn kết nối Google Drive và mã thư mục riêng cho từng chức năng.</span></div>
         <div><span><b>{bindings.filter((item) => item.active).length}</b><small>đã cấu hình</small></span><span><b>{drives.filter((item) => item.active).length}</b><small>Drive khả dụng</small></span></div>
       </header>
-      <div className="nova-storage-note"><Icon name="folder" /><span><b>Ví dụ:</b> các chức năng Hành chính nhân sự có thể cùng định tuyến vào thư mục <code>PHCNS</code>. Phần này chỉ lưu cấu hình, chưa ghi file.</span></div>
+      <div className="nova-storage-note"><Folder /><span><b>Ví dụ:</b> các chức năng Hành chính nhân sự có thể cùng định tuyến vào thư mục <code>PHCNS</code>. Phần này chỉ lưu cấu hình, chưa ghi file.</span></div>
       <div className="nova-storage-toolbar">
-        <div className="nova-account-search"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm chức năng nghiệp vụ…" /></div>
+        <div className="nova-account-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm chức năng nghiệp vụ…" /></div>
         <select value={moduleFilter} onChange={(event) => setModuleFilter(event.target.value)}><option value="ALL">Tất cả phòng ban</option>{modules.map((module) => <option value={module} key={module}>{moduleLabels[module] ?? module}</option>)}</select>
-        <button onClick={() => void load()} aria-label="Làm mới định tuyến" disabled={loading}><Icon name="refresh" className={loading ? 'spin' : ''} /></button>
+        <button onClick={() => void load()} aria-label="Làm mới định tuyến" disabled={loading}><RefreshCw className={loading ? 'spin' : ''} /></button>
       </div>
       {error && <div className="nova-panel-error"><span>{error}</span><button onClick={() => void load()}>Thử lại</button></div>}
       <div className="nova-storage-table" role="table" aria-label="Định tuyến lưu trữ theo chức năng">
@@ -214,19 +214,19 @@ export default function BusinessStorageRouting({ connections, canManage }: {
           const ready = binding?.active && binding.connectionActive;
           return (
             <div className="nova-storage-row" role="row" key={businessFunction.navigationItemId}>
-              <span className="nova-storage-function"><i><Icon name="folder" /></i><div><b>{businessFunction.label}</b><small>{businessFunction.code}</small></div></span>
+              <span className="nova-storage-function"><i><Folder /></i><div><b>{businessFunction.label}</b><small>{businessFunction.code}</small></div></span>
               <span><b>{moduleLabels[businessFunction.module] ?? businessFunction.module}</b><small>{businessFunction.module}</small></span>
               <span>{binding ? <><b>{binding.connectionName}</b><small>{binding.connectionCode}</small></> : <em>Chưa chọn</em>}</span>
               <span>{binding ? <><code>{binding.folderCode}</code><small>{binding.folderName}</small></> : <em>Chưa có thư mục</em>}</span>
               <span><em className={'nova-routing-status ' + (ready ? 'ready' : binding ? 'paused' : 'empty')}><i />{ready ? 'Sẵn sàng' : binding ? 'Tạm dừng' : 'Chưa cấu hình'}</em></span>
-              <span>{canManage && <button className="nova-button secondary compact" onClick={() => setSelectedFunction(businessFunction)}><Icon name={binding ? 'edit' : 'plus'} />{binding ? 'Sửa' : 'Cấu hình'}</button>}</span>
+              <span>{canManage && <button className="nova-button secondary compact" onClick={() => setSelectedFunction(businessFunction)}>{binding ? <Pencil /> : <Plus />}{binding ? 'Sửa' : 'Cấu hình'}</button>}</span>
             </div>
           );
         })}
-        {!loading && visibleFunctions.length === 0 && <div className="nova-account-empty"><span><Icon name="folder" /></span><b>Không có chức năng phù hợp</b><p>Thử thay đổi phòng ban hoặc từ khóa tìm kiếm.</p></div>}
+        {!loading && visibleFunctions.length === 0 && <div className="nova-account-empty"><span><Folder /></span><b>Không có chức năng phù hợp</b><p>Thử thay đổi phòng ban hoặc từ khóa tìm kiếm.</p></div>}
       </div>
       {selectedFunction && <StorageBindingDialog businessFunction={selectedFunction} binding={selectedBinding} drives={drives} onClose={() => setSelectedFunction(null)} onSave={save} />}
-      {toast && <div className="nova-admin-toast"><span><Icon name="check" /></span>{toast}</div>}
+      {toast && <div className="nova-admin-toast"><span><Check /></span>{toast}</div>}
     </section>
   );
 }

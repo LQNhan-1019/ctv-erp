@@ -1,36 +1,19 @@
 import type { Metadata } from 'next';
-// Đổi từ Geist sang Inter và Roboto_Mono
-import { Inter, Roboto_Mono, Playfair_Display } from 'next/font/google';
+import { Inter } from 'next/font/google';
+import { themeInitScript } from '@/components/theme-provider';
 import './globals.css';
 import './nova-admin.css';
 import Providers from './providers';
 
-// Khai báo Inter thay cho Geist (Font nội dung chính)
 const inter = Inter({
-  variable: '--font-geist-sans', // Giữ nguyên tên biến để không phải sửa CSS
-  subsets: ['latin', 'vietnamese'], 
-  display: 'swap',
-});
-
-// Khai báo Roboto_Mono thay cho Geist_Mono (Font code/số liệu)
-const robotoMono = Roboto_Mono({
-  variable: '--font-geist-mono', // Giữ nguyên tên biến để không phải sửa CSS
+  variable: '--font-inter',
   subsets: ['latin', 'vietnamese'],
-  display: 'swap',
-});
-
-// Khai báo Playfair Display (Font Serif cho tiêu đề lớn)
-const playfair = Playfair_Display({
-  variable: '--font-playfair',
-  subsets: ['latin', 'vietnamese'], 
   display: 'swap',
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
 export const metadata: Metadata = {
-  // ... (giữ nguyên phần metadata của bạn)
-  // ... (giữ nguyên phần metadata của bạn)
   metadataBase: new URL(siteUrl),
   title: {
     default: 'CTV ERP — Điều hành phân phối',
@@ -56,11 +39,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi">
-      <body
-        // Cập nhật tên class ở đây
-        className={`${inter.variable} ${robotoMono.variable} ${playfair.variable} antialiased`}
-      >
+    <html lang="vi" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeInitScript }} /></head>
+      <body className={`${inter.variable} antialiased`}>
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -1,6 +1,7 @@
 import type { ApiRequestOptions } from '@/lib/api/client';
-import type { CatalogImportInput, CatalogImportPreview, CatalogImportResult, CatalogInput, CategoryInput, EmployeeOption, WorkCatalog, WorkCategory, WorkDashboard, WorkImportInput, WorkImportPreview, WorkImportResult, WorkItemInput, WorkPlan } from '../types/work';
+import type { CatalogImportInput, CatalogImportPreview, CatalogImportResult, CatalogInput, CategoryInput, EmployeeOption, WorkCapabilities, WorkCatalog, WorkCategory, WorkDashboard, WorkImportInput, WorkImportPreview, WorkImportResult, WorkItemInput, WorkPlan } from '../types/work';
 type Request = <T>(path:string, options?:ApiRequestOptions)=>Promise<T>;
+export const getWorkCapabilities=(request:Request)=>request<WorkCapabilities>('/api/hr/work/capabilities');
 export const listWorkEmployees=(request:Request)=>request<EmployeeOption[]>('/api/hr/work/employees');
 export const getWorkDashboard=(request:Request,month:string)=>request<WorkDashboard>(`/api/hr/work/dashboard?month=${month}`);
 export const listCategories=(request:Request,all=false)=>request<WorkCategory[]>(`/api/hr/work/categories?includeInactive=${all}`);

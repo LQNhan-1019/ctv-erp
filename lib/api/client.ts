@@ -23,8 +23,19 @@ export class ApiClientError extends Error {
   }
 }
 
-let csrfToken: string | null = null;
 let csrfPromise: Promise<string | null> | null = null;
+const XSRF_COOKIE_NAME = 'XSRF-TOKEN';
+
+function readCookie(name: string) {
+  if (typeof document === 'undefined') return null;
+  const prefix = `${encodeURIComponent(name)}=`;
+  const value = document.cookie
+    .split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(prefix))
+    ?.slice(prefix.length);
+  return value ? decodeURIComponent(value) : null;
+}
 
 export async function initializeCsrf() {
   const response = await fetch(`${env.apiBaseUrl}/api/auth/csrf`, {
@@ -34,13 +45,11 @@ export async function initializeCsrf() {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) throw new Error('Không khởi tạo được CSRF token');
-  const payload = await response.json() as { token?: string };
-  csrfToken = payload.token ?? null;
-  return csrfToken;
+  return readCookie(XSRF_COOKIE_NAME);
 }
 
 async function requireCsrfToken() {
-  let token = csrfToken;
+  let token = readCookie(XSRF_COOKIE_NAME);
   if (!token) {
     csrfPromise ??= initializeCsrf().finally(() => { csrfPromise = null; });
     token = await csrfPromise;
@@ -50,7 +59,7 @@ async function requireCsrfToken() {
       status: 403,
       error: 'Forbidden',
       code: 'CSRF_TOKEN_MISSING',
-      message: 'Không lấy được CSRF token từ máy chủ',
+      message: 'Không đọc được cookie XSRF-TOKEN. Frontend và backend cần dùng cùng site hoặc reverse proxy để trình duyệt cho phép đọc cookie.',
     });
   }
   return token;
@@ -88,8 +97,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const errorPayload = (payload ?? {}) as Partial<ApiErrorPayload>;
   if (response.status === 403 && errorPayload.code === 'CSRF_VALIDATION_FAILED'
       && csrfRetry && MUTATING_METHODS.has(method) && !options.skipCsrf) {
-    csrfToken = null;
-    await requireCsrfToken();
+    await initializeCsrf();
     return apiRequest<T>(path, options, false);
   }
 

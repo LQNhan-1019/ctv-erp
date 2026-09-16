@@ -1,7 +1,7 @@
 'use client';
 
+import { Check, ListFilter, LockKeyhole, Save, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import Icon from '@/components/ui/icon';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { getDataSheet, listInputDepartments, updateDataSheet } from '../api/performance-api';
 import type { DataSheet, PerformanceDepartment } from '../types/performance';
@@ -116,7 +116,7 @@ export default function PerformanceDataEntryPage() {
     <div className="nova-account-page performance-page">
       <header className="nova-page-header performance-header">
         <div><p className="nova-eyebrow">SHEET SỐ LIỆU TẠM THỜI</p><h1>Nhập dữ liệu theo ngày</h1><span>Mỗi phòng ban chỉ nhìn và nhập được sheet thuộc phạm vi đã được cấp quyền.</span></div>
-        <button className="nova-button primary" disabled={!dirty || saving || !sheet} onClick={() => void save()}><Icon name="save" />{saving ? 'Đang lưu…' : 'Lưu số liệu'}</button>
+        <button className="nova-button primary" disabled={!dirty || saving || !sheet} onClick={() => void save()}><Save />{saving ? 'Đang lưu…' : 'Lưu số liệu'}</button>
       </header>
       <div className="performance-toolbar">
         <label><span>Bộ phận nhập</span><select disabled={departments.length <= 1} value={departmentId} onChange={(event) => { setLoading(true); setError(''); setMessage(''); setScopeFilter('ALL'); setSubjectFilter('ALL'); setMetricQuery(''); setDepartmentId(event.target.value); }}>{departments.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select><small>Được xác định từ hồ sơ nhân viên và phạm vi quyền.</small></label>
@@ -124,15 +124,15 @@ export default function PerformanceDataEntryPage() {
         {dirty && <span className="performance-unsaved">Có thay đổi chưa lưu</span>}
       </div>
       {!loading && isSalesDepartment && <div className="performance-business-filters">
-        <div className="performance-filter-heading"><Icon name="filter" /><div><b>Bộ lọc Phòng Kinh doanh Tổng hợp</b><span>Lọc nhanh theo cấp vận hành, đối tượng hoặc tên chỉ số.</span></div></div>
+        <div className="performance-filter-heading"><ListFilter /><div><b>Bộ lọc Phòng Kinh doanh Tổng hợp</b><span>Lọc nhanh theo cấp vận hành, đối tượng hoặc tên chỉ số.</span></div></div>
         <label><span>Cấp dữ liệu</span><select value={scopeFilter} onChange={(event) => { setScopeFilter(event.target.value); setSubjectFilter('ALL'); }}><option value="ALL">Tất cả cấp</option><option value="COMPANY">Toàn công ty</option><option value="REGION">Khu vực</option><option value="VEHICLE">Đội xe bồn</option><option value="STORE">Cửa hàng bán lẻ</option></select></label>
         <label><span>Đối tượng</span><select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)}><option value="ALL">Tất cả đối tượng</option>{subjects.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
         <label className="performance-query"><span>Tìm chỉ số</span><input type="search" placeholder="Sản lượng, lãi gộp…" value={metricQuery} onChange={(event) => setMetricQuery(event.target.value)} /></label>
         <output>{visibleRows.length}/{sheet?.rows.length ?? 0} chỉ số</output>
       </div>}
-      {message && <div className="performance-success"><Icon name="check" />{message}</div>}
-      {error && <div className="performance-error"><Icon name="alert" />{error}</div>}
-      {!loading && departments.length === 0 && <div className="performance-empty"><Icon name="lock" /><h2>Chưa được cấp phạm vi nhập liệu</h2><p>Quản trị viên cần liên kết tài khoản với hồ sơ nhân viên đúng phòng ban và cấp quyền PERFORMANCE.DATA.ENTER tại phòng đó.</p></div>}
+      {message && <div className="performance-success"><Check />{message}</div>}
+      {error && <div className="performance-error"><TriangleAlert />{error}</div>}
+      {!loading && departments.length === 0 && <div className="performance-empty"><LockKeyhole /><h2>Chưa được cấp phạm vi nhập liệu</h2><p>Quản trị viên cần liên kết tài khoản với hồ sơ nhân viên đúng phòng ban và cấp quyền PERFORMANCE.DATA.ENTER tại phòng đó.</p></div>}
       {loading && <div className="performance-state"><span className="nova-session-spinner" />Đang mở sheet dữ liệu…</div>}
       {!loading && sheet && <div className="performance-sheet-wrap">
         <table className="performance-sheet">

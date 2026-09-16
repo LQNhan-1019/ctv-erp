@@ -1,14 +1,15 @@
 'use client';
 
+import { CalendarDays, ChevronRight, ClipboardList, Clock3, Database, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Plug, ScrollText, Settings, ShieldCheck, Sun, Table2, Target, Users, type LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import Icon, { type IconName } from '@/components/ui/icon';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { listMyNavigation } from '@/features/navigation/api/navigation-api';
 import type { NavigationItem } from '@/features/navigation/types/navigation';
+import { useTheme } from '@/components/theme-provider';
 
-type ShellLink = { href: string; label: string; icon: IconName };
+type ShellLink = { href: string; label: string; icon: LucideIcon };
 type ShellGroup = { label: string; items: ShellLink[] };
 
 const routeMap: Record<string, string> = {
@@ -32,25 +33,25 @@ const routeMap: Record<string, string> = {
   '/admin/work-items': '/admin/work-items',
 };
 
-const iconByCode: Record<string, IconName> = {
-  NAV_DASHBOARD: 'dashboard',
-  NAV_DASHBOARD_EXECUTIVE: 'dashboard',
-  NAV_DASHBOARD_SALES: 'target',
-  NAV_DASHBOARD_ACCOUNTING: 'database',
-  NAV_DASHBOARD_HR_ADMIN: 'users',
-  NAV_PERFORMANCE_GOALS: 'target',
-  NAV_PERFORMANCE_DATA_ENTRY: 'table',
-  NAV_SECURITY_USERS: 'users',
-  NAV_SECURITY_ROLES: 'key',
-  NAV_SECURITY_AUDIT: 'scroll',
-  NAV_SYSTEM_SETTINGS: 'settings',
-  NAV_SYSTEM_INTEGRATIONS: 'plug',
-  NAV_SYSTEM_BACKUPS: 'database',
-  NAV_HR_EMPLOYEES: 'users',
-  NAV_HR_ATTENDANCE: 'clock',
-  NAV_ADMIN_EXPENSES: 'database',
-  NAV_ADMIN_DOCUMENTS: 'calendar',
-  NAV_ADMIN_WORK: 'clipboard',
+const iconByCode: Record<string, LucideIcon> = {
+  NAV_DASHBOARD: LayoutDashboard,
+  NAV_DASHBOARD_EXECUTIVE: LayoutDashboard,
+  NAV_DASHBOARD_SALES: Target,
+  NAV_DASHBOARD_ACCOUNTING: Database,
+  NAV_DASHBOARD_HR_ADMIN: Users,
+  NAV_PERFORMANCE_GOALS: Target,
+  NAV_PERFORMANCE_DATA_ENTRY: Table2,
+  NAV_SECURITY_USERS: Users,
+  NAV_SECURITY_ROLES: KeyRound,
+  NAV_SECURITY_AUDIT: ScrollText,
+  NAV_SYSTEM_SETTINGS: Settings,
+  NAV_SYSTEM_INTEGRATIONS: Plug,
+  NAV_SYSTEM_BACKUPS: Database,
+  NAV_HR_EMPLOYEES: Users,
+  NAV_HR_ATTENDANCE: Clock3,
+  NAV_ADMIN_EXPENSES: Database,
+  NAV_ADMIN_DOCUMENTS: CalendarDays,
+  NAV_ADMIN_WORK: ClipboardList,
 };
 
 const pageHeadings: Record<string, { eyebrow: string; title: string }> = {
@@ -79,7 +80,7 @@ function toShellLink(item: NavigationItem): ShellLink | null {
   return {
     href: routeMap[item.route],
     label: item.label,
-    icon: iconByCode[item.code] ?? 'chevronRight',
+    icon: iconByCode[item.code] ?? ChevronRight,
   };
 }
 
@@ -108,27 +109,27 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
 
   if (canManage) {
     access.push(
-      { href: '/accounts', label: 'Tài khoản', icon: 'users' },
-      { href: '/security/roles', label: 'Vai trò & quyền', icon: 'key' },
+      { href: '/accounts', label: 'Tài khoản', icon: Users },
+      { href: '/security/roles', label: 'Vai trò & quyền', icon: KeyRound },
     );
   }
-  if (permissions.includes('AUDIT.VIEW')) access.push({ href: '/security/audit', label: 'Nhật ký hoạt động', icon: 'scroll' });
-  if (permissions.includes('SYSTEM.SETTINGS.VIEW')) system.push({ href: '/system/settings', label: 'Cấu hình hệ thống', icon: 'settings' });
-  if (permissions.includes('SYSTEM.INTEGRATION.VIEW')) system.push({ href: '/system/integrations', label: 'Kết nối dịch vụ', icon: 'plug' });
-  if (permissions.includes('SYSTEM.BACKUP.VIEW')) system.push({ href: '/system/backups', label: 'Sao lưu dữ liệu', icon: 'database' });
-  if (permissions.includes('PERFORMANCE.GOAL.VIEW')) performance.push({ href: '/performance/goals', label: 'Mục tiêu KPI / OKR', icon: 'target' });
-  if (permissions.includes('PERFORMANCE.DATA.ENTER')) performance.push({ href: '/performance/data-entry', label: 'Nhập số liệu theo ngày', icon: 'table' });
-  if (permissions.includes('HR.VIEW')) humanResources.push({ href: '/hr/employees', label: 'Nhân viên & phòng ban', icon: 'users' });
-  if (permissions.includes('HR.ATTENDANCE.VIEW')) humanResources.push({ href: '/hr/attendance', label: 'Quản lý chấm công', icon: 'clock' });
-  if (permissions.includes('ADMIN.EXPENSE.VIEW')) humanResources.push({ href: '/admin/expenses', label: 'Chi phí hành chính', icon: 'database' });
-  if (permissions.includes('ADMIN.DOCUMENT.VIEW')) humanResources.push({ href: '/admin/documents', label: 'Hồ sơ & thời hạn', icon: 'calendar' });
-  if (permissions.includes('ADMIN.WORK.VIEW')) humanResources.push({ href: '/admin/work-items', label: 'Quản lý công việc', icon: 'clipboard' });
+  if (permissions.includes('AUDIT.VIEW')) access.push({ href: '/security/audit', label: 'Nhật ký hoạt động', icon: ScrollText });
+  if (permissions.includes('SYSTEM.SETTINGS.VIEW')) system.push({ href: '/system/settings', label: 'Cấu hình hệ thống', icon: Settings });
+  if (permissions.includes('SYSTEM.INTEGRATION.VIEW')) system.push({ href: '/system/integrations', label: 'Kết nối dịch vụ', icon: Plug });
+  if (permissions.includes('SYSTEM.BACKUP.VIEW')) system.push({ href: '/system/backups', label: 'Sao lưu dữ liệu', icon: Database });
+  if (permissions.includes('PERFORMANCE.GOAL.VIEW')) performance.push({ href: '/performance/goals', label: 'Mục tiêu KPI / OKR', icon: Target });
+  if (permissions.includes('PERFORMANCE.DATA.ENTER')) performance.push({ href: '/performance/data-entry', label: 'Nhập số liệu theo ngày', icon: Table2 });
+  if (permissions.includes('HR.VIEW')) humanResources.push({ href: '/hr/employees', label: 'Nhân viên & phòng ban', icon: Users });
+  if (permissions.includes('HR.ATTENDANCE.VIEW')) humanResources.push({ href: '/hr/attendance', label: 'Quản lý chấm công', icon: Clock3 });
+  if (permissions.includes('ADMIN.EXPENSE.VIEW')) humanResources.push({ href: '/admin/expenses', label: 'Chi phí hành chính', icon: Database });
+  if (permissions.includes('ADMIN.DOCUMENT.VIEW')) humanResources.push({ href: '/admin/documents', label: 'Hồ sơ & thời hạn', icon: CalendarDays });
+  if (permissions.includes('ADMIN.WORK.VIEW')) humanResources.push({ href: '/admin/work-items', label: 'Quản lý công việc', icon: ClipboardList });
 
   const dashboard: ShellLink[] = [];
-  if (permissions.includes('PERFORMANCE.DASHBOARD.VIEW')) dashboard.push({ href: '/dashboard', label: 'Dashboard điều hành', icon: 'dashboard' });
-  if (permissions.includes('DASHBOARD.SALES.VIEW')) dashboard.push({ href: '/dashboard/sales', label: 'Dashboard Kinh doanh', icon: 'target' });
-  if (permissions.includes('DASHBOARD.ACCOUNTING.VIEW')) dashboard.push({ href: '/dashboard/accounting', label: 'Dashboard Tài chính', icon: 'database' });
-  if (permissions.includes('DASHBOARD.HR_ADMIN.VIEW')) dashboard.push({ href: '/dashboard/hr-admin', label: 'Dashboard HCNS', icon: 'users' });
+  if (permissions.includes('PERFORMANCE.DASHBOARD.VIEW')) dashboard.push({ href: '/dashboard', label: 'Dashboard điều hành', icon: LayoutDashboard });
+  if (permissions.includes('DASHBOARD.SALES.VIEW')) dashboard.push({ href: '/dashboard/sales', label: 'Dashboard Kinh doanh', icon: Target });
+  if (permissions.includes('DASHBOARD.ACCOUNTING.VIEW')) dashboard.push({ href: '/dashboard/accounting', label: 'Dashboard Tài chính', icon: Database });
+  if (permissions.includes('DASHBOARD.HR_ADMIN.VIEW')) dashboard.push({ href: '/dashboard/hr-admin', label: 'Dashboard HCNS', icon: Users });
   const groups: ShellGroup[] = [
     { label: 'DASHBOARD PHÒNG BAN', items: dashboard },
     { label: 'MỤC TIÊU & HIỆU SUẤT', items: performance },
@@ -141,6 +142,7 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
 
 export default function AuthenticatedShell({ children }: { children: React.ReactNode }) {
   const { user, status, sessionError, retrySession, logout, request } = useAuth();
+  const { toggleTheme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -159,12 +161,12 @@ export default function AuthenticatedShell({ children }: { children: React.React
       .then((items) => {
         if (!active) return;
         const groups = toShellGroups(items);
-        setNavigation([{ label: 'TRANG CHỦ', items: [{ href: '/home', label: 'Trang chủ', icon: 'dashboard' }] }, ...(groups.length ? groups : fallbackGroups(user.permissions))]);
+        setNavigation([{ label: 'TRANG CHỦ', items: [{ href: '/home', label: 'Trang chủ', icon: LayoutDashboard }] }, ...(groups.length ? groups : fallbackGroups(user.permissions))]);
         setUsingFallback(groups.length === 0);
       })
       .catch(() => {
         if (!active) return;
-        setNavigation([{ label: 'TRANG CHỦ', items: [{ href: '/home', label: 'Trang chủ', icon: 'dashboard' }] }, ...fallbackGroups(user.permissions)]);
+        setNavigation([{ label: 'TRANG CHỦ', items: [{ href: '/home', label: 'Trang chủ', icon: LayoutDashboard }] }, ...fallbackGroups(user.permissions)]);
         setUsingFallback(true);
       });
 
@@ -172,6 +174,7 @@ export default function AuthenticatedShell({ children }: { children: React.React
   }, [request, status, user]);
 
   const heading = useMemo(() => pageHeadings[pathname] ?? pageHeadings['/dashboard'], [pathname]);
+  const isDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/dashboard/');
 
   async function handleLogout() {
     await logout();
@@ -187,20 +190,21 @@ export default function AuthenticatedShell({ children }: { children: React.React
 
   const initials = user.username.slice(0, 2).toUpperCase();
   return (
-    <main className="nova-admin-shell">
+    <main className={`nova-admin-shell snowui-shell ${isDashboardRoute ? 'snowui-dashboard-shell' : ''}`}>
       {mobileOpen && <button className="nova-mobile-backdrop" onClick={() => setMobileOpen(false)} aria-label="Đóng menu" />}
       <aside className={`nova-admin-sidebar ${mobileOpen ? 'open' : ''}`}>
-        <Link className="nova-admin-brand" href="/home"><span>CTV</span><div><b>CTV</b><small>Distribution ERP</small></div></Link>
-        <div className="nova-admin-context"><span><Icon name="shield" /></span><div><small>KHÔNG GIAN LÀM VIỆC</small><b>Quản trị hệ thống</b></div></div>
+        <Link className="nova-admin-brand" href="/home"><span>CTV</span><div><b>CTV ERP</b><small>Hệ thống điều hành</small></div></Link>
+        <div className="nova-admin-context"><span><ShieldCheck /></span><div><small>KHÔNG GIAN LÀM VIỆC</small><b>Quản trị hệ thống</b></div></div>
         <nav aria-label="Chức năng được cấp quyền">
           {navigation.map((group) => (
             <div className="nova-nav-group" key={group.label}>
               <p>{group.label}</p>
               {group.items.map((item) => {
                 const isActive = pathname === item.href;
+                const ItemIcon = item.icon;
                 return (
                   <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={isActive ? 'active' : ''}>
-                    <Icon name={item.icon} /><span>{item.label}</span>{isActive && <i />}
+                    <ItemIcon /><span>{item.label}</span>{isActive && <i />}
                   </Link>
                 );
               })}
@@ -208,13 +212,13 @@ export default function AuthenticatedShell({ children }: { children: React.React
           ))}
           {usingFallback && <small className="nova-nav-note">Menu dự phòng theo quyền tài khoản</small>}
         </nav>
-        <div className="nova-admin-profile"><span>{initials}</span><div><b>{user.username}</b><small>{user.roles[0] ?? 'Người dùng'}</small></div><button onClick={handleLogout} title="Đăng xuất" aria-label="Đăng xuất"><Icon name="logout" /></button></div>
+        <div className="nova-admin-profile"><span>{initials}</span><div><b>{user.username}</b><small>{user.roles[0] ?? 'Người dùng'}</small></div><button onClick={handleLogout} title="Đăng xuất" aria-label="Đăng xuất"><LogOut /></button></div>
       </aside>
       <section className="nova-admin-workspace">
         <header className="nova-admin-topbar">
-          <button className="nova-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Mở menu"><Icon name="menu" /></button>
+          <button className="nova-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Mở menu"><Menu /></button>
           <div><p>{heading.eyebrow}</p><b>{heading.title}</b></div>
-          <div className="nova-admin-actions"><span aria-label={`Tài khoản ${user.username}`}>{initials}</span></div>
+          <div className="nova-admin-actions"><button className="nova-theme-toggle" type="button" onClick={toggleTheme} title="Chuyển chế độ màu" aria-label="Chuyển chế độ màu"><span className="snow-theme-icon-light"><Moon /></span><span className="snow-theme-icon-dark"><Sun /></span></button><span aria-label={`Tài khoản ${user.username}`}>{initials}</span></div>
         </header>
         {children}
       </section>

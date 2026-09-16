@@ -8,7 +8,7 @@ import {
 } from 'recharts';
 import { ArrowDownRight, ArrowUpRight, CheckCircle2, CircleAlert, TriangleAlert } from 'lucide-react';
 
-export type DashboardTone = 'blue' | 'green' | 'violet' | 'amber' | 'rose' | 'cyan';
+export type DashboardTone = 'blue' | 'green' | 'violet' | 'amber' | 'rose' | 'cyan' | 'department';
 
 export function DashboardSection({ id, eyebrow, title, description, action, tone = 'blue', className = '', style, children }: {
   id?: string; eyebrow: string; title: string; description?: string; action?: { label: string; href: string };
@@ -20,13 +20,13 @@ export function DashboardSection({ id, eyebrow, title, description, action, tone
   </section>;
 }
 
-export function MetricCard({ label, value, unit, caption, progress, change, icon: Icon, tone = 'blue' }: {
+export function MetricCard({ label, value, unit, caption, progress, change, icon: Glyph, tone = 'blue' }: {
   label: string; value: string; unit?: string; caption?: string; progress?: number | null;
   change?: { value: number; label: string } | null; icon: ComponentType<{ size?: number; strokeWidth?: number }>;
   tone?: DashboardTone;
 }) {
   return <article className={`executive-metric tone-${tone}`}>
-    <div className="executive-metric-heading"><span>{label}</span><i><Icon size={19} strokeWidth={1.9}/></i></div>
+    <div className="executive-metric-heading"><span>{label}</span><i><Glyph size={19} strokeWidth={1.9}/></i></div>
     <div className="executive-metric-value"><strong>{value}</strong>{unit && <small>{unit}</small>}</div>
     {change ? <div className={`executive-change ${change.value >= 0 ? 'positive' : 'negative'}`}>{change.value >= 0 ? <ArrowUpRight size={14}/> : <ArrowDownRight size={14}/>}<b>{Math.abs(change.value).toFixed(1)}%</b><span>{change.label}</span></div> : <p>{caption ?? 'Đang tổng hợp trong kỳ báo cáo'}</p>}
     {progress != null && <div className="executive-metric-progress"><span><i style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}/></span><b>{Math.round(progress)}%</b></div>}
@@ -42,13 +42,13 @@ export type TrendPoint = { label: string; revenue: number; grossProfit: number; 
 const trendLabels: Record<string, string> = { revenue: 'Doanh thu', grossProfit: 'Lãi gộp', netProfit: 'LN sau thuế', target: '% hoàn thành' };
 export function TrendChart({ data }: { data: TrendPoint[] }) {
   return <div className="executive-chart"><ResponsiveContainer width="100%" height={310}><ComposedChart data={data} margin={{ top: 18, right: 8, bottom: 2, left: 0 }}>
-    <CartesianGrid stroke="#e8edf4" strokeDasharray="4 5" vertical={false}/><XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: '#64748b', fontSize: 11 }}/>
-    <YAxis yAxisId="money" tickLine={false} axisLine={false} width={54} tick={{ fill: '#64748b', fontSize: 10 }} tickFormatter={compactNumber}/><YAxis yAxisId="percent" orientation="right" domain={[0, 120]} tickLine={false} axisLine={false} width={38} tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={(value) => `${value}%`}/>
-    <Tooltip cursor={{ fill: 'rgba(37,99,235,.04)' }} formatter={(value, name) => [new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Number(value)), trendLabels[String(name)] ?? String(name)]}/>
-    <Legend formatter={(value) => trendLabels[value] ?? value}/><Bar yAxisId="money" dataKey="revenue" fill="#3b82f6" radius={[5, 5, 0, 0]} maxBarSize={38}/>
-    <Line yAxisId="money" type="monotone" dataKey="grossProfit" stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 3, fill: '#8b5cf6', strokeWidth: 2, stroke: '#fff' }}/>
-    <Line yAxisId="money" type="monotone" dataKey="netProfit" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}/>
-    <Line yAxisId="percent" type="monotone" dataKey="target" stroke="#f59e0b" strokeWidth={2} strokeDasharray="6 5" dot={{ r: 3, fill: '#f59e0b' }}/>
+    <CartesianGrid stroke="var(--dashboard-chart-grid)" strokeDasharray="4 5" vertical={false}/><XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'var(--dashboard-chart-label)', fontSize: 12 }}/>
+    <YAxis yAxisId="money" tickLine={false} axisLine={false} width={54} tick={{ fill: 'var(--dashboard-chart-label)', fontSize: 12 }} tickFormatter={compactNumber}/><YAxis yAxisId="percent" orientation="right" domain={[0, 120]} tickLine={false} axisLine={false} width={42} tick={{ fill: 'var(--dashboard-chart-muted)', fontSize: 12 }} tickFormatter={(value) => `${value}%`}/>
+    <Tooltip cursor={{ fill: 'var(--dashboard-chart-hover)' }} formatter={(value, name) => [new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Number(value)), trendLabels[String(name)] ?? String(name)]}/>
+    <Legend formatter={(value) => trendLabels[value] ?? value}/><Bar yAxisId="money" dataKey="revenue" fill="var(--dashboard-chart-revenue)" radius={[5, 5, 0, 0]} maxBarSize={38}/>
+    <Line yAxisId="money" type="monotone" dataKey="grossProfit" stroke="var(--dashboard-chart-gross)" strokeWidth={2.5} dot={{ r: 3, fill: 'var(--dashboard-chart-gross)', strokeWidth: 2, stroke: 'var(--dashboard-surface)' }}/>
+    <Line yAxisId="money" type="monotone" dataKey="netProfit" stroke="var(--dashboard-chart-net)" strokeWidth={2.5} dot={{ r: 3, fill: 'var(--dashboard-chart-net)', strokeWidth: 2, stroke: 'var(--dashboard-surface)' }}/>
+    <Line yAxisId="percent" type="monotone" dataKey="target" stroke="var(--dashboard-chart-target)" strokeWidth={2} strokeDasharray="6 5" dot={{ r: 3, fill: 'var(--dashboard-chart-target)' }}/>
   </ComposedChart></ResponsiveContainer></div>;
 }
 
@@ -57,10 +57,10 @@ export function ComparisonTable<T extends { id: string }>({ columns, rows, empty
   return <div className="executive-table-wrap"><table className="executive-table"><thead><tr>{columns.map(column => <th key={column.key} className={column.align ?? 'left'}>{column.label}</th>)}</tr></thead><tbody>{rows.map(row => <tr key={row.id}>{columns.map(column => <td key={column.key} className={column.align ?? 'left'}>{column.render(row)}</td>)}</tr>)}</tbody></table>{!rows.length && <div className="executive-table-empty">{empty}</div>}</div>;
 }
 
-const barColors = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f43f5e'];
+const barColors = ['var(--dashboard-chart-revenue)', 'var(--dashboard-chart-net)', 'var(--dashboard-chart-target)', 'var(--dashboard-chart-gross)', 'var(--dashboard-chart-cyan)', 'var(--dashboard-chart-rose)'];
 export function ComparisonBars({ data, unit }: { data: { name: string; value: number }[]; unit: string }) {
   return <div className="executive-chart compact"><ResponsiveContainer width="100%" height={260}><BarChart data={data} margin={{ top: 16, right: 4, left: -16, bottom: 4 }}>
-    <CartesianGrid stroke="#edf1f6" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="name" axisLine={false} tickLine={false} interval={0} tick={{ fill: '#64748b', fontSize: 10 }}/><YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9 }} tickFormatter={compactNumber}/>
+    <CartesianGrid stroke="var(--dashboard-chart-grid)" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="name" axisLine={false} tickLine={false} interval={0} tick={{ fill: 'var(--dashboard-chart-label)', fontSize: 12 }}/><YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--dashboard-chart-muted)', fontSize: 12 }} tickFormatter={compactNumber}/>
     <Tooltip formatter={(value) => [`${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Number(value))} ${unit}`, 'Thực hiện']}/><Bar dataKey="value" radius={[6, 6, 1, 1]} maxBarSize={48}>{data.map((item, index) => <Cell key={item.name} fill={barColors[index % barColors.length]}/>)}</Bar>
   </BarChart></ResponsiveContainer></div>;
 }

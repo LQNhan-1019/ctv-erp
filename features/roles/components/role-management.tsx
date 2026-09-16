@@ -1,10 +1,11 @@
 'use client';
 
+import { Check, KeyRound, Plus, RefreshCw, Save, Search, ShieldCheck, Trash2, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import Icon from '@/components/ui/icon';
 import { useAuth } from '@/features/auth/context/auth-context';
 import {
   createRole,
+  deleteRole,
   getRolePermissions,
   listPermissions,
   listRoles,
@@ -42,18 +43,18 @@ function CreateRoleDialog({ onClose, onCreate }: {
   return (
     <div className="nova-overlay" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section className="nova-dialog" role="dialog" aria-modal="true" aria-labelledby="create-role-title">
-        <header><div><p>VAI TRÒ MỚI</p><h2 id="create-role-title">Tạo nhóm quyền</h2><span>Nhóm các chức năng phù hợp với một vị trí hoặc phòng ban.</span></div><button onClick={onClose} aria-label="Đóng"><Icon name="x" /></button></header>
+        <header><div><p>VAI TRÒ MỚI</p><h2 id="create-role-title">Tạo nhóm quyền</h2><span>Nhóm các chức năng phù hợp với một vị trí hoặc phòng ban.</span></div><button onClick={onClose} aria-label="Đóng"><X /></button></header>
         <form onSubmit={submit}>
           <div className="nova-dialog-body">
             <div className="nova-form-grid">
-              <label><span>Mã vai trò</span><div className="nova-field"><Icon name="key" /><input name="code" minLength={3} maxLength={64} placeholder="VD. KE_TOAN_TRUONG" required /></div></label>
-              <label><span>Tên hiển thị</span><div className="nova-field"><Icon name="shield" /><input name="name" maxLength={128} placeholder="Kế toán trưởng" required /></div></label>
+              <label><span>Mã vai trò</span><div className="nova-field"><KeyRound /><input name="code" minLength={3} maxLength={64} placeholder="VD. KE_TOAN_TRUONG" required /></div></label>
+              <label><span>Tên hiển thị</span><div className="nova-field"><ShieldCheck /><input name="name" maxLength={128} placeholder="Kế toán trưởng" required /></div></label>
             </div>
             <label><span>Mô tả phạm vi</span><textarea className="nova-textarea" name="description" maxLength={1000} rows={4} placeholder="Nêu rõ nhóm nhân viên và phạm vi sử dụng…" /></label>
-            <div className="nova-info-note"><Icon name="shield" /><span>Sau khi tạo, chọn vai trò ở danh sách để cấp từng permission cụ thể.</span></div>
+            <div className="nova-info-note"><ShieldCheck /><span>Sau khi tạo, chọn vai trò ở danh sách để cấp từng permission cụ thể.</span></div>
             {error && <div className="nova-form-error" role="alert">{error}</div>}
           </div>
-          <footer><button type="button" className="nova-button secondary" onClick={onClose}>Hủy</button><button type="submit" className="nova-button primary" disabled={submitting}><Icon name="plus" />{submitting ? 'Đang tạo…' : 'Tạo vai trò'}</button></footer>
+          <footer><button type="button" className="nova-button secondary" onClick={onClose}>Hủy</button><button type="submit" className="nova-button primary" disabled={submitting}><Plus />{submitting ? 'Đang tạo…' : 'Tạo vai trò'}</button></footer>
         </form>
       </section>
     </div>
@@ -186,27 +187,45 @@ export default function RoleManagement() {
     setToast('Đã tạo vai trò ' + created.name);
   }
 
+  async function handleDelete() {
+    if (!selectedRole || selectedRole.systemRole) return;
+    if (!window.confirm(`Xóa vai trò “${selectedRole.name}”? Mọi phân công đang dùng vai trò này cũng sẽ bị gỡ.`)) return;
+    setSaving(true);
+    setError('');
+    try {
+      await deleteRole(request, selectedRole.id);
+      const remaining = roles.filter((role) => role.id !== selectedRole.id);
+      setRoles(remaining);
+      setSelectedRoleId(remaining[0]?.id ?? '');
+      setToast('Đã xóa vai trò ' + selectedRole.name);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Không thể xóa vai trò');
+    } finally {
+      setSaving(false);
+    }
+  }
+
   if (!canManage) {
-    return <section className="nova-access-denied"><span><Icon name="shield" /></span><p>KHÔNG ĐỦ QUYỀN</p><h1>Bạn không thể quản lý vai trò.</h1><div>Cần permission <code>SECURITY.MANAGE</code> để truy cập chức năng này.</div></section>;
+    return <section className="nova-access-denied"><span><ShieldCheck /></span><p>KHÔNG ĐỦ QUYỀN</p><h1>Bạn không thể quản lý vai trò.</h1><div>Cần permission <code>SECURITY.MANAGE</code> để truy cập chức năng này.</div></section>;
   }
 
   return (
     <div className="nova-account-page nova-role-page">
       <header className="nova-page-header">
         <div><p className="nova-eyebrow">BẢO MẬT & PHÂN QUYỀN</p><h1>Vai trò và quyền</h1><span>Xếp chức năng cho nhân viên theo vai trò; backend vẫn là lớp kiểm soát cuối cùng.</span></div>
-        <button className="nova-button primary" onClick={() => setCreateOpen(true)}><Icon name="plus" />Tạo vai trò</button>
+        <button className="nova-button primary" onClick={() => setCreateOpen(true)}><Plus />Tạo vai trò</button>
       </header>
 
       {error && <div className="nova-panel-error"><span>{error}</span><button onClick={() => void load()}>Tải lại</button></div>}
       <section className="nova-role-layout">
         <aside className="nova-role-directory">
-          <header><div><p>NHÓM TRUY CẬP</p><b>{roles.length} vai trò</b></div><button onClick={() => void load()} aria-label="Làm mới"><Icon name="refresh" /></button></header>
-          <div className="nova-role-search"><Icon name="search" /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm vai trò…" /></div>
+          <header><div><p>NHÓM TRUY CẬP</p><b>{roles.length} vai trò</b></div><button onClick={() => void load()} aria-label="Làm mới"><RefreshCw /></button></header>
+          <div className="nova-role-search"><Search /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm vai trò…" /></div>
           <div className="nova-role-scroll">
             {loading && Array.from({ length: 5 }).map((_, index) => <span className="nova-role-skeleton" key={index} />)}
             {!loading && visibleRoles.map((role) => (
               <button key={role.id} className={role.id === selectedRoleId ? 'active' : ''} onClick={() => setSelectedRoleId(role.id)}>
-                <span><Icon name={role.systemRole ? 'shield' : 'key'} /></span>
+                <span>{role.systemRole ? <ShieldCheck /> : <KeyRound />}</span>
                 <div><b>{role.name}</b><small>{role.code}</small></div>
                 <em>{role.permissionCount}</em>
               </button>
@@ -215,14 +234,17 @@ export default function RoleManagement() {
         </aside>
 
         <section className="nova-role-editor">
-          {!selectedRole && !loading && <div className="nova-account-empty"><span><Icon name="key" /></span><b>Chưa có vai trò</b><p>Tạo vai trò đầu tiên để bắt đầu phân quyền.</p></div>}
+          {!selectedRole && !loading && <div className="nova-account-empty"><span><KeyRound /></span><b>Chưa có vai trò</b><p>Tạo vai trò đầu tiên để bắt đầu phân quyền.</p></div>}
           {selectedRole && (
             <>
               <header>
                 <div><p>CHI TIẾT VAI TRÒ</p><h2>{selectedRole.name}</h2><span>{selectedRole.code}</span></div>
-                <button className="nova-button primary" onClick={() => void save()} disabled={saving}><Icon name="save" />{saving ? 'Đang lưu…' : 'Lưu thay đổi'}</button>
+                <div className="nova-role-editor-actions">
+                  {!selectedRole.systemRole && <button className="nova-button danger" onClick={() => void handleDelete()} disabled={saving}><Trash2 />Xóa vai trò</button>}
+                  <button className="nova-button primary" onClick={() => void save()} disabled={saving}><Save />{saving ? 'Đang lưu…' : 'Lưu thay đổi'}</button>
+                </div>
               </header>
-              {selectedRole.systemRole && <div className="nova-info-note"><Icon name="shield" /><span>Vai trò hệ thống được phép sửa tên, mô tả và tập quyền. Riêng SYSTEM_ADMIN phải giữ SECURITY.MANAGE và không thể tạm dừng để tránh khóa toàn bộ quản trị viên.</span></div>}
+              {selectedRole.systemRole && <div className="nova-info-note"><ShieldCheck /><span>Vai trò hệ thống được phép sửa tên, mô tả và tập quyền. Riêng SYSTEM_ADMIN phải giữ SECURITY.MANAGE và không thể tạm dừng để tránh khóa toàn bộ quản trị viên.</span></div>}
               <div className="nova-role-fields">
                 <label><span>Tên hiển thị</span><input value={name} onChange={(event) => setName(event.target.value)} maxLength={128} /></label>
                 <label><span>Trạng thái</span><select value={active ? 'ACTIVE' : 'INACTIVE'} onChange={(event) => setActive(event.target.value === 'ACTIVE')} disabled={selectedRole.systemRole}><option value="ACTIVE">Đang hoạt động</option><option value="INACTIVE">Tạm dừng</option></select></label>
@@ -233,7 +255,7 @@ export default function RoleManagement() {
                 {permissionLoading && <div className="nova-inline-loading"><span className="nova-session-spinner" />Đang tải quyền…</div>}
                 {!permissionLoading && Object.entries(groupedPermissions).map(([module, items]) => (
                   <section key={module}>
-                    <header><div><span><Icon name="shield" /></span><div><b>{module}</b><small>{items.filter((item) => selectedPermissionIds.has(item.id)).length}/{items.length} quyền đã chọn</small></div></div><button type="button" className="nova-permission-module-toggle" onClick={() => togglePermissions(items.map((item) => item.id))}>{items.every((item) => selectedPermissionIds.has(item.id)) ? 'Bỏ chọn' : 'Chọn nhóm'}</button></header>
+                    <header><div><span><ShieldCheck /></span><div><b>{module}</b><small>{items.filter((item) => selectedPermissionIds.has(item.id)).length}/{items.length} quyền đã chọn</small></div></div><button type="button" className="nova-permission-module-toggle" onClick={() => togglePermissions(items.map((item) => item.id))}>{items.every((item) => selectedPermissionIds.has(item.id)) ? 'Bỏ chọn' : 'Chọn nhóm'}</button></header>
                     <div>
                       {items.map((permission) => (
                         <label key={permission.id} className={selectedPermissionIds.has(permission.id) ? 'selected' : ''}>
@@ -250,7 +272,7 @@ export default function RoleManagement() {
         </section>
       </section>
       {createOpen && <CreateRoleDialog onClose={() => setCreateOpen(false)} onCreate={handleCreate} />}
-      {toast && <div className="nova-admin-toast"><span><Icon name="check" /></span>{toast}</div>}
+      {toast && <div className="nova-admin-toast"><span><Check /></span>{toast}</div>}
     </div>
   );
 }

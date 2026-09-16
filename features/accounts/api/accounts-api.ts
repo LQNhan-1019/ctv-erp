@@ -28,11 +28,21 @@ export function listAccountRoles(request: AuthorizedRequest, userId: string) {
   return request<UserRoleAssignment[]>(`/api/security/users/${userId}/roles`);
 }
 
-export function assignGlobalRole(request: AuthorizedRequest, userId: string, roleId: string) {
+export function assignAccountRole(
+  request: AuthorizedRequest,
+  userId: string,
+  roleId: string,
+  scopeType: 'GLOBAL' | 'DEPARTMENT' = 'GLOBAL',
+  scopeId: string | null = null,
+) {
   return request<UserRoleAssignment>(`/api/security/users/${userId}/roles`, {
     method: 'POST',
-    body: { roleId, scopeType: 'GLOBAL', scopeId: null, startsAt: null, expiresAt: null },
+    body: { roleId, scopeType, scopeId, startsAt: null, expiresAt: null },
   });
+}
+
+export function assignGlobalRole(request: AuthorizedRequest, userId: string, roleId: string) {
+  return assignAccountRole(request, userId, roleId);
 }
 
 export function removeAccountRole(request: AuthorizedRequest, userId: string, assignmentId: string) {

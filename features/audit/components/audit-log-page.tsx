@@ -1,7 +1,7 @@
 'use client';
 
+import { ChevronRight, KeyRound, ListFilter, Pencil, RefreshCw, ScrollText, ShieldCheck, TriangleAlert, UserRound, X, type LucideIcon } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
-import Icon, { type IconName } from '@/components/ui/icon';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { getAuditLog, listAuditLogs } from '../api/audit-api';
 import type { AuditFilters, AuditLog, JsonValue } from '../types/audit';
@@ -35,11 +35,11 @@ function actionTone(action: string) {
   return 'neutral';
 }
 
-function actionIcon(action: string): IconName {
-  if (action.includes('LOGIN') || action.includes('LOGOUT')) return 'user';
-  if (action.includes('PASSWORD')) return 'key';
-  if (action.includes('DELETE') || action.includes('FAILED')) return 'alert';
-  return 'edit';
+function actionIcon(action: string): LucideIcon {
+  if (action.includes('LOGIN') || action.includes('LOGOUT')) return UserRound;
+  if (action.includes('PASSWORD')) return KeyRound;
+  if (action.includes('DELETE') || action.includes('FAILED')) return TriangleAlert;
+  return Pencil;
 }
 
 function jsonText(value: JsonValue) {
@@ -53,7 +53,7 @@ function AuditDetail({ log, loading, onClose }: { log: AuditLog | null; loading:
       <aside className="nova-audit-drawer" role="dialog" aria-modal="true" aria-labelledby="audit-detail-title">
         <header>
           <div><p>NHẬT KÝ #{log?.id ?? '…'}</p><h2 id="audit-detail-title">Chi tiết thao tác</h2><span>Dữ liệu chỉ đọc, được ghi nhận tự động bởi backend.</span></div>
-          <button onClick={onClose} aria-label="Đóng"><Icon name="x" /></button>
+          <button onClick={onClose} aria-label="Đóng"><X /></button>
         </header>
         {loading || !log ? <div className="nova-inline-loading"><span className="nova-session-spinner" />Đang tải chi tiết…</div> : (
           <div className="nova-audit-detail">
@@ -152,21 +152,21 @@ export default function AuditLogPage() {
   }
 
   if (!canView) {
-    return <section className="nova-access-denied"><span><Icon name="shield" /></span><p>KHÔNG ĐỦ QUYỀN</p><h1>Bạn không thể xem nhật ký hoạt động.</h1><div>Cần permission <code>AUDIT.VIEW</code> để truy cập chức năng này.</div></section>;
+    return <section className="nova-access-denied"><span><ShieldCheck /></span><p>KHÔNG ĐỦ QUYỀN</p><h1>Bạn không thể xem nhật ký hoạt động.</h1><div>Cần permission <code>AUDIT.VIEW</code> để truy cập chức năng này.</div></section>;
   }
 
   return (
     <div className="nova-account-page nova-audit-page">
       <header className="nova-page-header">
         <div><p className="nova-eyebrow">GIÁM SÁT & TUÂN THỦ</p><h1>Nhật ký hoạt động</h1><span>Theo dõi đăng nhập, đổi mật khẩu và mọi thao tác chỉnh sửa dữ liệu quan trọng.</span></div>
-        <button className="nova-button secondary" onClick={() => void load()} disabled={loading}><Icon name="refresh" className={loading ? 'spin' : ''} />Làm mới</button>
+        <button className="nova-button secondary" onClick={() => void load()} disabled={loading}><RefreshCw className={loading ? 'spin' : ''} />Làm mới</button>
       </header>
 
       <section className="nova-audit-metrics">
-        <article><span><Icon name="scroll" /></span><div><small>BẢN GHI TRANG NÀY</small><b>{logs.length}</b></div></article>
-        <article><span className="green"><Icon name="user" /></span><div><small>HOẠT ĐỘNG ĐĂNG NHẬP</small><b>{metrics.login}</b></div></article>
-        <article><span className="amber"><Icon name="edit" /></span><div><small>THAY ĐỔI DỮ LIỆU</small><b>{metrics.changed}</b></div></article>
-        <article><span className="red"><Icon name="alert" /></span><div><small>CẦN CHÚ Ý</small><b>{metrics.risk}</b></div></article>
+        <article><span><ScrollText /></span><div><small>BẢN GHI TRANG NÀY</small><b>{logs.length}</b></div></article>
+        <article><span className="green"><UserRound /></span><div><small>HOẠT ĐỘNG ĐĂNG NHẬP</small><b>{metrics.login}</b></div></article>
+        <article><span className="amber"><Pencil /></span><div><small>THAY ĐỔI DỮ LIỆU</small><b>{metrics.changed}</b></div></article>
+        <article><span className="red"><TriangleAlert /></span><div><small>CẦN CHÚ Ý</small><b>{metrics.risk}</b></div></article>
       </section>
 
       <section className="nova-account-panel">
@@ -175,7 +175,7 @@ export default function AuditLogPage() {
           <label><span>Loại dữ liệu</span><input value={draftEntity} onChange={(event) => setDraftEntity(event.target.value)} placeholder="VD. USER_ACCOUNT" /></label>
           <label><span>Từ thời điểm</span><input type="datetime-local" value={draftFrom} onChange={(event) => setDraftFrom(event.target.value)} /></label>
           <label><span>Đến thời điểm</span><input type="datetime-local" value={draftTo} onChange={(event) => setDraftTo(event.target.value)} /></label>
-          <button className="nova-button primary" type="submit"><Icon name="filter" />Lọc</button>
+          <button className="nova-button primary" type="submit"><ListFilter />Lọc</button>
           <button className="nova-button secondary" type="button" onClick={clearFilters}>Xóa lọc</button>
         </form>
         {error && <div className="nova-panel-error"><span>{error}</span><button onClick={() => void load()}>Thử lại</button></div>}
@@ -186,13 +186,13 @@ export default function AuditLogPage() {
             <button className="nova-audit-row data" role="row" key={log.id} onClick={() => void openDetail(log)}>
               <span><b>{formatDate(log.occurredAt)}</b><small>#{log.id}</small></span>
               <span><b>{log.username || 'Hệ thống'}</b><small>{log.userId ? log.userId.slice(0, 8) : 'Tác vụ nền'}</small></span>
-              <span><em className={'nova-audit-action ' + actionTone(log.action)}><Icon name={actionIcon(log.action)} />{actionLabels[log.action] || log.action}</em></span>
+              <span><em className={'nova-audit-action ' + actionTone(log.action)}>{(() => { const ActionIcon = actionIcon(log.action); return <ActionIcon />; })()}{actionLabels[log.action] || log.action}</em></span>
               <span><b>{log.entityType || '—'}</b><small>{log.entityId ? log.entityId.slice(0, 13) + '…' : 'Không có ID'}</small></span>
               <span><code>{log.ipAddress || '—'}</code></span>
-              <span><Icon name="chevronRight" /></span>
+              <span><ChevronRight /></span>
             </button>
           ))}
-          {!loading && logs.length === 0 && <div className="nova-account-empty"><span><Icon name="scroll" /></span><b>Không có bản ghi phù hợp</b><p>Thử mở rộng khoảng thời gian hoặc xóa bộ lọc.</p></div>}
+          {!loading && logs.length === 0 && <div className="nova-account-empty"><span><ScrollText /></span><b>Không có bản ghi phù hợp</b><p>Thử mở rộng khoảng thời gian hoặc xóa bộ lọc.</p></div>}
         </div>
         <footer className="nova-table-footer nova-pagination">
           <span>Tổng <b>{totalItems}</b> bản ghi · Trang {filters.page + 1}/{Math.max(totalPages, 1)}</span>

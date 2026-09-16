@@ -1,7 +1,7 @@
 'use client';
 
+import { Check, Save, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import Icon from '@/components/ui/icon';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { createGoal, listGoals, listPerformanceMetrics, updateGoal } from '../api/performance-api';
 import type { Goal, GoalFramework, GoalInput, GoalStatus, PerformanceMetric } from '../types/performance';
@@ -112,8 +112,8 @@ export default function GoalManagementPage() {
         <label><span>Phòng ban</span><select value={department} onChange={(event) => setDepartment(event.target.value)}><option value="ALL">Tất cả phòng ban</option>{departments.map(([code, name]) => <option key={code} value={code}>{name}</option>)}</select></label>
         <div className="performance-legend"><span><i className="dot green" />Đã giao: {goals.length}</span><span><i className="dot gray" />Chưa giao: {metrics.length - goals.length}</span></div>
       </div>
-      {message && <div className="performance-success"><Icon name="check" />{message}</div>}
-      {error && <div className="performance-error"><Icon name="alert" />{error}</div>}
+      {message && <div className="performance-success"><Check />{message}</div>}
+      {error && <div className="performance-error"><TriangleAlert />{error}</div>}
       {loading && <div className="performance-state"><span className="nova-session-spinner" />Đang tải danh sách chỉ số…</div>}
       {!loading && <div className="performance-goal-list">
         {visible.map((metric) => {
@@ -127,7 +127,7 @@ export default function GoalManagementPage() {
             <label><span>Giá trị mục tiêu</span><input disabled={!canManage} type="number" min="0.001" step="0.001" value={draft.target} placeholder="Chưa giao" onChange={(event) => patchDraft(metric.id, { target: event.target.value })} /></label>
             <label><span>Trọng số %</span><input disabled={!canManage} type="number" min="0.01" max="100" step="0.01" value={draft.weight} onChange={(event) => patchDraft(metric.id, { weight: event.target.value })} /></label>
             <label><span>Trạng thái</span><select disabled={!canManage} value={draft.status} onChange={(event) => patchDraft(metric.id, { status: event.target.value as GoalStatus })}><option value="DRAFT">Nháp</option><option value="ACTIVE">Đang áp dụng</option><option value="CLOSED">Đã chốt</option></select></label>
-            <div className="performance-goal-action">{goal && <span className="goal-progress">{Math.round(goal.progressPercent)}%</span>}{canManage && <button className="nova-button primary" onClick={() => void save(metric)} disabled={saving === metric.id}><Icon name="save" />{saving === metric.id ? 'Đang lưu…' : goal ? 'Cập nhật' : 'Giao mục tiêu'}</button>}</div>
+            <div className="performance-goal-action">{goal && <span className="goal-progress">{Math.round(goal.progressPercent)}%</span>}{canManage && <button className="nova-button primary" onClick={() => void save(metric)} disabled={saving === metric.id}><Save />{saving === metric.id ? 'Đang lưu…' : goal ? 'Cập nhật' : 'Giao mục tiêu'}</button>}</div>
           </article>;
         })}
       </div>}

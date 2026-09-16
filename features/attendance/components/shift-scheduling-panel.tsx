@@ -1,7 +1,7 @@
 'use client';
 
+import { CalendarDays, Clock3, Pencil, Save, Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import Icon from '@/components/ui/icon';
 import type { ApiRequestOptions } from '@/lib/api/client';
 import { createSchedule, createShift, deleteSchedule, deleteShift, listSchedules, updateShift } from '../api/attendance-api';
 import type { AttendanceShift, EmployeeOption, ScheduleRule } from '../types/attendance';
@@ -73,7 +73,7 @@ export default function ShiftSchedulingPanel({ request, shifts, employees, busy,
   return <div className="attendance-scheduling-layout">
     <section className="attendance-panel">
       <header><div><h2>Danh sách ca</h2><p>Thời gian đủ công được tính tự động từ giờ vào, giờ ra và giờ nghỉ.</p></div></header>
-      <div className="shift-list">{shifts.map((shift) => <article key={shift.id} className={!shift.active ? 'inactive' : ''}><span><Icon name="clock" /></span><div><b>{shift.name}</b><small>{shift.code} · {shift.startTime.slice(0, 5)}–{shift.endTime.slice(0, 5)} · {shift.fullDayMinutes} phút</small></div><div className="shift-row-actions"><button type="button" onClick={() => edit(shift)} aria-label="Sửa ca"><Icon name="edit" /></button><button type="button" className="danger" onClick={() => { if (window.confirm(`Xóa ca ${shift.name}? Ca đã phát sinh bảng công sẽ được ngừng sử dụng để giữ lịch sử.`)) void execute('delete-shift', () => deleteShift(request, shift.id)); }} aria-label="Xóa ca"><Icon name="trash" /></button></div></article>)}</div>
+      <div className="shift-list">{shifts.map((shift) => <article key={shift.id} className={!shift.active ? 'inactive' : ''}><span><Clock3 /></span><div><b>{shift.name}</b><small>{shift.code} · {shift.startTime.slice(0, 5)}–{shift.endTime.slice(0, 5)} · {shift.fullDayMinutes} phút</small></div><div className="shift-row-actions"><button type="button" onClick={() => edit(shift)} aria-label="Sửa ca"><Pencil /></button><button type="button" className="danger" onClick={() => { if (window.confirm(`Xóa ca ${shift.name}? Ca đã phát sinh bảng công sẽ được ngừng sử dụng để giữ lịch sử.`)) void execute('delete-shift', () => deleteShift(request, shift.id)); }} aria-label="Xóa ca"><Trash2 /></button></div></article>)}</div>
     </section>
     <section className="attendance-panel attendance-form">
       <h2>{editingId ? 'Sửa ca làm việc' : 'Tạo ca làm việc'}</h2>
@@ -83,7 +83,7 @@ export default function ShiftSchedulingPanel({ request, shifts, employees, busy,
         <div className="nova-form-grid"><label><span>Bắt đầu nghỉ</span><input type="time" value={draft.breakStartTime} onChange={(event) => change('breakStartTime', event.target.value)} /></label><label><span>Kết thúc nghỉ</span><input type="time" value={draft.breakEndTime} onChange={(event) => change('breakEndTime', event.target.value)} /></label></div>
         <div className="nova-form-grid three"><label><span>Trễ cho phép</span><input type="number" min="0" value={draft.lateGraceMinutes} onChange={(event) => change('lateGraceMinutes', Number(event.target.value))} /></label><label><span>Về sớm cho phép</span><input type="number" min="0" value={draft.earlyLeaveGraceMinutes} onChange={(event) => change('earlyLeaveGraceMinutes', Number(event.target.value))} /></label><label><span>Đủ công tự tính</span><output>{minutes} phút ({(minutes / 60).toFixed(1)} giờ)</output></label></div>
         <label className="attendance-inline-check"><input type="checkbox" checked={draft.active} onChange={(event) => change('active', event.target.checked)} />Đang sử dụng</label>
-        <div className="attendance-form-actions">{editingId && <button type="button" className="nova-button secondary" onClick={reset}>Hủy sửa</button>}<button className="nova-button primary" disabled={busy === 'shift' || minutes <= 0}><Icon name="save" />{editingId ? 'Lưu ca' : 'Tạo ca'}</button></div>
+        <div className="attendance-form-actions">{editingId && <button type="button" className="nova-button secondary" onClick={reset}>Hủy sửa</button>}<button className="nova-button primary" disabled={busy === 'shift' || minutes <= 0}><Save />{editingId ? 'Lưu ca' : 'Tạo ca'}</button></div>
       </form>
       <hr />
       <h2>Phân ca hàng loạt & lịch lặp</h2>
@@ -96,9 +96,9 @@ export default function ShiftSchedulingPanel({ request, shifts, employees, busy,
         <div className="employee-picker-toolbar"><label><input type="checkbox" checked={allSelected} onChange={(event) => setSelectedEmployees(event.target.checked ? employees.map((item) => item.id) : [])} />Chọn tất cả ({employees.length})</label><span>Đã chọn {selectedEmployees.length}</span></div>
         <div className="employee-picker">{employees.map((employee) => <label key={employee.id}><input type="checkbox" checked={selectedEmployees.includes(employee.id)} onChange={(event) => setSelectedEmployees((current) => event.target.checked ? [...current, employee.id] : current.filter((id) => id !== employee.id))} /><span><b>{employee.fullName}</b><small>{employee.employeeCode} · {employee.businessUnitName}</small></span></label>)}</div>
         <label className="attendance-inline-check"><input name="overwriteExisting" type="checkbox" />Ghi đè ca đã phân trong cùng ngày</label>
-        <button className="nova-button primary" disabled={busy === 'schedule' || !selectedEmployees.length}><Icon name="calendar" />Tạo lịch phân ca</button>
+        <button className="nova-button primary" disabled={busy === 'schedule' || !selectedEmployees.length}><CalendarDays />Tạo lịch phân ca</button>
       </form>
-      {rules.length > 0 && <div className="schedule-rule-list"><h3>Lịch đã tạo</h3>{rules.map((rule) => <article key={rule.id}><div><b>{rule.name}</b><small>{rule.shiftName} · {rule.recurrenceType} · {rule.fromDate} → {rule.toDate}</small></div><span>{rule.employeeCount} NV · {rule.assignedDays} lượt</span><button type="button" onClick={() => { if (window.confirm('Xóa lịch và các phân ca từ hôm nay trở đi?')) void execute('delete-schedule', () => deleteSchedule(request, rule.id)).then(refreshRules); }}><Icon name="trash" /></button></article>)}</div>}
+      {rules.length > 0 && <div className="schedule-rule-list"><h3>Lịch đã tạo</h3>{rules.map((rule) => <article key={rule.id}><div><b>{rule.name}</b><small>{rule.shiftName} · {rule.recurrenceType} · {rule.fromDate} → {rule.toDate}</small></div><span>{rule.employeeCount} NV · {rule.assignedDays} lượt</span><button type="button" onClick={() => { if (window.confirm('Xóa lịch và các phân ca từ hôm nay trở đi?')) void execute('delete-schedule', () => deleteSchedule(request, rule.id)).then(refreshRules); }}><Trash2 /></button></article>)}</div>}
     </section>
   </div>;
 }

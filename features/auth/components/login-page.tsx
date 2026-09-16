@@ -1,14 +1,16 @@
 'use client';
 
+import { ArrowRight, Eye, EyeOff, LockKeyhole, Moon, ShieldCheck, Sun, UserRound } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Icon from '@/components/ui/icon';
 import { ApiClientError } from '@/lib/api/client';
 import { useAuth } from '../context/auth-context';
+import { useTheme } from '@/components/theme-provider';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, status } = useAuth();
+  const { toggleTheme } = useTheme();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +37,8 @@ export default function LoginPage() {
 
   return (
     <main className="nova-login-page">
-      <section className="nova-login-story" aria-label="Giới thiệu NOVA ERP">
+      <button className="nova-login-theme-toggle" type="button" onClick={toggleTheme} title="Chuyển chế độ màu" aria-label="Chuyển chế độ màu"><span className="snow-theme-icon-light"><Moon /></span><span className="snow-theme-icon-dark"><Sun /></span></button>
+      <section className="nova-login-story" aria-label="Giới thiệu CTV ERP">
         <div className="nova-login-brand"><span>CTV</span><strong>CTV</strong><small>Distribution ERP</small></div>
         <div className="nova-story-content">
           <p className="nova-eyebrow nova-eyebrow-light">NỀN TẢNG ĐIỀU HÀNH CTV</p>
@@ -62,22 +65,22 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="nova-login-form">
             <label>
               <span>Tên đăng nhập</span>
-              <div className="nova-field"><Icon name="user" /><input autoFocus autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Nhập tên đăng nhập" required /></div>
+              <div className="nova-field"><UserRound /><input autoFocus autoComplete="username" value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Nhập tên đăng nhập" required /></div>
             </label>
             <label>
               <span>Mật khẩu</span>
-              <div className="nova-field"><Icon name="lock" /><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" required /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}><Icon name={showPassword ? 'eyeOff' : 'eye'} /></button></div>
+              <div className="nova-field"><LockKeyhole /><input type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Nhập mật khẩu" required /><button type="button" onClick={() => setShowPassword((value) => !value)} aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}>{showPassword ? <EyeOff /> : <Eye />}</button></div>
             </label>
             <div className="nova-login-options"><span>Phiên đăng nhập được tự động làm mới</span><span>Quên mật khẩu? Liên hệ quản trị viên</span></div>
             {error && <div className="nova-form-error" role="alert">{error}</div>}
             <button className="nova-login-submit" type="submit" disabled={submitting || status === 'checking'}>
-              <span>{submitting ? 'Đang xác thực…' : 'Đăng nhập hệ thống'}</span><Icon name="arrowRight" />
+              <span>{submitting ? 'Đang xác thực…' : 'Đăng nhập hệ thống'}</span><ArrowRight />
             </button>
           </form>
 
-          <div className="nova-login-security"><Icon name="shield" /><span>Kết nối được bảo vệ bằng JWT, CSRF và refresh token an toàn.</span></div>
+          <div className="nova-login-security"><ShieldCheck /><span>Kết nối được bảo vệ bằng JWT, CSRF và refresh token an toàn.</span></div>
         </div>
-        <footer>© 2026 NOVA ERP · Chỉ dành cho người dùng được ủy quyền</footer>
+        <footer>© 2026 CTV ERP · Phát triển độc quyền bởi CTV</footer>
       </section>
     </main>
   );

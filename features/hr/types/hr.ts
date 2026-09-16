@@ -22,6 +22,8 @@ export type Employee = {
   departmentName: string;
   jobTitleId: string | null;
   jobTitleName: string;
+  managerId: string | null;
+  managerName: string | null;
   gender: 'MALE' | 'FEMALE' | 'OTHER' | null;
   dateOfBirth: string | null;
   workEmail: string | null;
@@ -69,6 +71,7 @@ export type EmployeeInput = {
   fullName: string;
   businessUnitId: string;
   jobTitleId: string | null;
+  managerId: string | null;
   gender: Employee['gender'];
   dateOfBirth: string | null;
   workEmail: string | null;

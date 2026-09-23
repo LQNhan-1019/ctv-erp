@@ -11,6 +11,7 @@ const groupMetadata: Record<string, { label: string; description: string; icon: 
   ORGANIZATION: { label: 'Thông tin doanh nghiệp', description: 'Thông tin pháp lý và liên hệ hiển thị xuyên suốt ERP.', icon: Building2 },
   SYSTEM: { label: 'Thiết lập vận hành', description: 'Múi giờ và quy ước hiển thị dùng chung.', icon: Settings },
   DOCUMENT: { label: 'Hồ sơ & thời hạn', description: 'Cấu hình cảnh báo bảo hiểm, hợp đồng và giấy tờ.', icon: CalendarClock },
+  PERFORMANCE_INPUT: { label: 'Khóa nhập dữ liệu dashboard', description: 'Đặt số ngày nhập bù và khóa nhập mới, sửa, xóa số liệu quá hạn. Áp dụng cả Excel và nhập tay, theo giờ Việt Nam.', icon: CalendarClock },
   DASHBOARD: { label: 'Giao diện dashboard', description: 'Kéo thả, sắp xếp và ẩn hiện các khối dashboard theo nhu cầu điều hành.', icon: LayoutDashboard },
 };
 

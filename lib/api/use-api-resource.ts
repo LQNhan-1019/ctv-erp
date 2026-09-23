@@ -42,5 +42,6 @@ export function useApiResource<T>({ key, load, onSuccess }: ApiResourceOptions<T
   }, [key, revision]);
 
   const refresh = useCallback(() => setRevision((value) => value + 1), []);
-  return { data, error, loading, refresh } as const;
+  const replace = useCallback((value: T) => setData(value), []);
+  return { data, error, loading, refresh, replace } as const;
 }

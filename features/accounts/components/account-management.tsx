@@ -1,5 +1,7 @@
 'use client';
 
+import { appDialog } from '@/lib/ui/app-dialog';
+
 import { Check, Plus, RefreshCw, Search, ShieldCheck, Users } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/context/auth-context';
@@ -99,7 +101,7 @@ export default function AccountManagement() {
   async function changeStatus(account: UserAccount) {
     const nextStatus: UserStatus = account.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     const action = nextStatus === 'ACTIVE' ? 'kích hoạt' : 'tạm dừng';
-    if (!window.confirm(`Xác nhận ${action} tài khoản “${account.username}”?`)) return;
+    if (!await appDialog.confirm(`Xác nhận ${action} tài khoản “${account.username}”?`)) return;
     setError('');
     try {
       const updated = await updateAccountStatus(request, account.id, nextStatus);

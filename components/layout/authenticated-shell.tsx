@@ -1,15 +1,17 @@
 'use client';
 
-import { CalendarDays, ChevronRight, ClipboardList, Clock3, Database, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Plug, ScrollText, Settings, ShieldCheck, Sun, Table2, Target, Users, type LucideIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { BarChart3, CalendarDays, ChevronRight, ClipboardList, Clock3, Database, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Plug, ScrollText, Settings, ShieldCheck, Sun, Table2, Target, Users, type LucideIcon } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { listMyNavigation } from '@/features/navigation/api/navigation-api';
 import type { NavigationItem } from '@/features/navigation/types/navigation';
 import { useTheme } from '@/components/theme-provider';
+import NotificationCenter from '@/components/layout/notification-center';
+import { getNotificationSummary, removePushSubscription, type NotificationSummary } from '@/features/notifications/api/notification-api';
 
-type ShellLink = { href: string; label: string; icon: LucideIcon };
+type ShellLink = { href: string; label: string; icon: LucideIcon; code?: string };
 type ShellGroup = { label: string; items: ShellLink[] };
 
 const routeMap: Record<string, string> = {
@@ -20,6 +22,7 @@ const routeMap: Record<string, string> = {
   '/dashboard/hr-admin': '/dashboard/hr-admin',
   '/performance/goals': '/performance/goals',
   '/performance/data-entry': '/performance/data-entry',
+  '/performance/results': '/performance/results',
   '/security/users': '/accounts',
   '/security/roles': '/security/roles',
   '/security/audit': '/security/audit',
@@ -41,6 +44,7 @@ const iconByCode: Record<string, LucideIcon> = {
   NAV_DASHBOARD_HR_ADMIN: Users,
   NAV_PERFORMANCE_GOALS: Target,
   NAV_PERFORMANCE_DATA_ENTRY: Table2,
+  NAV_PERFORMANCE_RESULTS: BarChart3,
   NAV_SECURITY_USERS: Users,
   NAV_SECURITY_ROLES: KeyRound,
   NAV_SECURITY_AUDIT: ScrollText,
@@ -68,6 +72,7 @@ const pageHeadings: Record<string, { eyebrow: string; title: string }> = {
   '/dashboard/hr-admin': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Dashboard HCNS' },
   '/performance/goals': { eyebrow: 'HIỆU SUẤT', title: 'Mục tiêu KPI / OKR' },
   '/performance/data-entry': { eyebrow: 'HIỆU SUẤT', title: 'Nhập số liệu theo ngày' },
+  '/performance/results': { eyebrow: 'KẾT QUẢ KPI', title: 'Dashboard kết quả vận hành' },
   '/hr/employees': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Nhân viên và phòng ban' },
   '/hr/attendance': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Quản lý chấm công' },
   '/admin/expenses': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Tổng hợp chi phí hành chính' },
@@ -81,6 +86,7 @@ function toShellLink(item: NavigationItem): ShellLink | null {
     href: routeMap[item.route],
     label: item.label,
     icon: iconByCode[item.code] ?? ChevronRight,
+    code: item.code,
   };
 }
 
@@ -119,11 +125,12 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
   if (permissions.includes('SYSTEM.BACKUP.VIEW')) system.push({ href: '/system/backups', label: 'Sao lưu dữ liệu', icon: Database });
   if (permissions.includes('PERFORMANCE.GOAL.VIEW')) performance.push({ href: '/performance/goals', label: 'Mục tiêu KPI / OKR', icon: Target });
   if (permissions.includes('PERFORMANCE.DATA.ENTER')) performance.push({ href: '/performance/data-entry', label: 'Nhập số liệu theo ngày', icon: Table2 });
+  if (permissions.includes('PERFORMANCE.RESULTS.VIEW')) performance.push({ href: '/performance/results', label: 'Dashboard kết quả KPI', icon: BarChart3 });
   if (permissions.includes('HR.VIEW')) humanResources.push({ href: '/hr/employees', label: 'Nhân viên & phòng ban', icon: Users });
   if (permissions.includes('HR.ATTENDANCE.VIEW')) humanResources.push({ href: '/hr/attendance', label: 'Quản lý chấm công', icon: Clock3 });
   if (permissions.includes('ADMIN.EXPENSE.VIEW')) humanResources.push({ href: '/admin/expenses', label: 'Chi phí hành chính', icon: Database });
   if (permissions.includes('ADMIN.DOCUMENT.VIEW')) humanResources.push({ href: '/admin/documents', label: 'Hồ sơ & thời hạn', icon: CalendarDays });
-  if (permissions.includes('ADMIN.WORK.VIEW')) humanResources.push({ href: '/admin/work-items', label: 'Quản lý công việc', icon: ClipboardList });
+  if (permissions.includes('ADMIN.WORK.VIEW')) humanResources.push({ href: '/admin/work-items', label: 'Quản lý công việc', icon: ClipboardList, code: 'NAV_ADMIN_WORK' });
 
   const dashboard: ShellLink[] = [];
   if (permissions.includes('PERFORMANCE.DASHBOARD.VIEW')) dashboard.push({ href: '/dashboard', label: 'Dashboard điều hành', icon: LayoutDashboard });
@@ -148,6 +155,28 @@ export default function AuthenticatedShell({ children }: { children: React.React
   const [mobileOpen, setMobileOpen] = useState(false);
   const [navigation, setNavigation] = useState<ShellGroup[]>([]);
   const [usingFallback, setUsingFallback] = useState(false);
+  const [notificationSummary, setNotificationSummary] = useState<NotificationSummary>({ unreadTotal: 0, unreadByNavigation: {} });
+
+  const refreshNotificationSummary = useCallback(async () => {
+    const next = await getNotificationSummary(request);
+    setNotificationSummary(next);
+  }, [request]);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    const refresh = () => { if (document.visibilityState === 'visible') void refreshNotificationSummary().catch(() => undefined); };
+    refresh();
+    const timer = window.setInterval(refresh, 20000);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('erp-notifications-changed', refresh);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('erp-notifications-changed', refresh);
+    };
+  }, [refreshNotificationSummary, status]);
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
@@ -177,6 +206,16 @@ export default function AuthenticatedShell({ children }: { children: React.React
   const isDashboardRoute = pathname === '/dashboard' || pathname.startsWith('/dashboard/');
 
   async function handleLogout() {
+    if ('serviceWorker' in navigator) {
+      try {
+        const registration = await navigator.serviceWorker.getRegistration('/erp-push-sw.js');
+        const subscription = await registration?.pushManager.getSubscription();
+        if (subscription) {
+          try { await removePushSubscription(request, subscription.endpoint); }
+          finally { await subscription.unsubscribe(); }
+        }
+      } catch { /* Đăng xuất vẫn tiếp tục khi trình duyệt chặn Web Push. */ }
+    }
     await logout();
     router.replace('/login');
   }
@@ -202,9 +241,10 @@ export default function AuthenticatedShell({ children }: { children: React.React
               {group.items.map((item) => {
                 const isActive = pathname === item.href;
                 const ItemIcon = item.icon;
+                const unread = notificationSummary.unreadByNavigation[item.code ?? ''] ?? 0;
                 return (
                   <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={isActive ? 'active' : ''}>
-                    <ItemIcon /><span>{item.label}</span>{isActive && <i />}
+                    <ItemIcon /><span>{item.label}</span>{unread > 0 && <span className="nova-nav-alert-dot" title={unread + ' thông báo chưa đọc'} aria-label={unread + ' thông báo chưa đọc'} />}{isActive && !unread && <i />}
                   </Link>
                 );
               })}
@@ -218,7 +258,7 @@ export default function AuthenticatedShell({ children }: { children: React.React
         <header className="nova-admin-topbar">
           <button className="nova-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Mở menu"><Menu /></button>
           <div><p>{heading.eyebrow}</p><b>{heading.title}</b></div>
-          <div className="nova-admin-actions"><button className="nova-theme-toggle" type="button" onClick={toggleTheme} title="Chuyển chế độ màu" aria-label="Chuyển chế độ màu"><span className="snow-theme-icon-light"><Moon /></span><span className="snow-theme-icon-dark"><Sun /></span></button><span aria-label={`Tài khoản ${user.username}`}>{initials}</span></div>
+          <div className="nova-admin-actions"><NotificationCenter summary={notificationSummary} refreshSummary={refreshNotificationSummary} /><button className="nova-theme-toggle" type="button" onClick={toggleTheme} title="Chuyển chế độ màu" aria-label="Chuyển chế độ màu"><span className="snow-theme-icon-light"><Moon /></span><span className="snow-theme-icon-dark"><Sun /></span></button><span aria-label={`Tài khoản ${user.username}`}>{initials}</span></div>
         </header>
         {children}
       </section>

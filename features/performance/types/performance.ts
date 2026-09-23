@@ -17,6 +17,18 @@ export type PerformanceMetric = {
   targetDirection: 'AT_LEAST' | 'AT_MOST';
   sortOrder: number;
 };
+export type PerformanceMetricInput = {
+  code: string;
+  name: string;
+  departmentId: string;
+  scopeLevel: PerformanceMetric['scopeLevel'];
+  subjectCode: string;
+  subjectName: string;
+  measurementUnit: MeasurementUnit;
+  aggregationMethod: PerformanceMetric['aggregationMethod'];
+  targetDirection: PerformanceMetric['targetDirection'];
+  sortOrder: number;
+};
 
 export type Goal = {
   id: string;
@@ -99,4 +111,63 @@ export type DataSheet = {
   daysInMonth: number;
   department: PerformanceDepartment;
   rows: DataSheetRow[];
+  entryPolicy: {
+    enabled: boolean;
+    graceDays: number;
+    lockCreate: boolean;
+    lockUpdate: boolean;
+    lockDelete: boolean;
+    editableFrom: string;
+  };
+};
+
+export type DailyImportPreview = {
+  totalCells: number;
+  readyCells: number;
+  existingCells: number;
+  lockedCells: number;
+  skippedDepartmentCells: number;
+  unchangedCells: number;
+  invalidCells: number;
+  importedCells: number;
+  cells: {
+    sheet: string;
+    row: number;
+    cellAddress: string;
+    departmentName: string;
+    metricName: string;
+    subjectName: string;
+    date: string;
+    value: number | null;
+    status: 'READY' | 'EXISTING' | 'LOCKED' | 'INVALID' | 'UNCHANGED';
+    message: string;
+  }[];
+};
+
+export type LeaderKpiIndicator = {
+  code: string;
+  name: string;
+  unit: string | null;
+  actualToDate: number | null;
+  monthResult: number | null;
+  completionRate: number | null;
+  remainingValue: number | null;
+  conversionValue: number | null;
+  convertedAmount: number | null;
+  dailyValues: Record<string, number>;
+};
+export type LeaderKpiSection = {
+  code: string;
+  name: string;
+  type: 'EXECUTIVE' | 'DEPARTMENT' | 'REGION' | 'VEHICLE' | 'STORE' | 'OTHER';
+  sortOrder: number;
+  indicators: LeaderKpiIndicator[];
+};
+export type LeaderKpiDashboard = {
+  month: string;
+  generatedAt: string;
+  importedAt: string | null;
+  sourceFileName: string | null;
+  totalIndicators: number;
+  sections: LeaderKpiSection[];
 };

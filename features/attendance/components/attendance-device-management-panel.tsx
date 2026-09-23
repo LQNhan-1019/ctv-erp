@@ -1,5 +1,7 @@
 'use client';
 
+import { appDialog } from '@/lib/ui/app-dialog';
+
 import { Check, ShieldCheck, TriangleAlert, Upload } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { ApiRequestOptions } from '@/lib/api/client';
@@ -54,7 +56,7 @@ export default function AttendanceDeviceManagementPanel({ request, sources, empl
 
   async function push() {
     if (!selectedConnectionId || !selected.size) return;
-    if (!window.confirm(`Nạp ${selected.size} nhân viên đã chọn vào máy chấm công? Dữ liệu cùng ID trên máy có thể được cập nhật.`)) return;
+    if (!await appDialog.confirm(`Nạp ${selected.size} nhân viên đã chọn vào máy chấm công? Dữ liệu cùng ID trên máy có thể được cập nhật.`)) return;
     setBusy(true); setError(''); setResult(null);
     try { setResult(await pushEmployeesToDevice(request, selectedConnectionId, Array.from(selected))); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể nạp dữ liệu vào máy'); }

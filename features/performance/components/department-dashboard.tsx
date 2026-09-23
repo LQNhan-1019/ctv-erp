@@ -21,7 +21,7 @@ const definitions: Record<DepartmentDashboardKind, { code: DashboardCode; title:
 };
 function currentMonth() { const value = new Date(); return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}`; }
 function number(value: number, digits = 1) { return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: digits }).format(value); }
-function shown(metric?: DashboardMetric) { if (!metric) return { value: '0', unit: '' }; if (metric.measurementUnit === 'MILLION_VND' && Math.abs(metric.actualValue) >= 1000) return { value: number(metric.actualValue / 1000), unit: 'tỷ VND' }; return { value: number(metric.actualValue), unit: unitLabels[metric.measurementUnit] }; }
+function shown(metric?: DashboardMetric) { if (!metric) return { value: '0', unit: '' }; if (metric.measurementUnit === 'MILLION_VND' && Math.abs(metric.actualValue) >= 1000) return { value: number(metric.actualValue / 1000), unit: 'VND' }; return { value: number(metric.actualValue), unit: unitLabels[metric.measurementUnit] }; }
 function Panel({ eyebrow, title, children }: { eyebrow: string; title: string; children: React.ReactNode }) { return <section className="department-dashboard-panel"><header><span>{eyebrow}</span><h2>{title}</h2></header>{children}</section>; }
 function Progress({ value }: { value: number | null }) { return <div className="department-progress"><span><i style={{ width: `${Math.min(100, Math.max(0, value ?? 0))}%` }}/></span><b>{value == null ? '—' : `${Math.round(value)}%`}</b></div>; }
 

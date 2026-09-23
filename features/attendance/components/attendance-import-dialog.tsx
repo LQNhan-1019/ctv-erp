@@ -3,15 +3,16 @@
 import { Download, Eye, Table2, TriangleAlert, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ApiRequestOptions } from '@/lib/api/client';
+import GoogleSheetSourcePicker, { resolvedSheetFile } from '@/features/import-sources/components/google-sheet-source-picker';
 import { importAttendanceWorkbook, previewAttendanceImport } from '../api/attendance-api';
 import type { AttendanceImportPreview, AttendanceImportResult, AttendanceSource } from '../types/attendance';
 
 type Request = <T>(path: string, options?: ApiRequestOptions) => Promise<T>;
-type Download = (path: string) => Promise<Blob>;
+type DownloadFile = (path: string) => Promise<Blob>;
 const fileBase64 = (file: File) => new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1] ?? ''); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); });
 const time = (value: string | null) => value ? value.slice(0, 5) : '—';
 
-export default function AttendanceImportDialog({ open, request, download, sources, close, onImported }: { open: boolean; request: Request; download: Download; sources: AttendanceSource[]; close: () => void; onImported: (result: AttendanceImportResult) => Promise<void> }) {
+export default function AttendanceImportDialog({ open, request, download, sources, close, onImported }: { open: boolean; request: Request; download: DownloadFile; sources: AttendanceSource[]; close: () => void; onImported: (result: AttendanceImportResult) => Promise<void> }) {
   const [file, setFile] = useState<File | null>(null);
   const [encoded, setEncoded] = useState('');
   const [sheetName, setSheetName] = useState('');
@@ -35,6 +36,7 @@ export default function AttendanceImportDialog({ open, request, download, source
     if (next.size > 10 * 1024 * 1024) { setEncoded(''); setError('File Excel tối đa 10 MB.'); return; }
     try { setEncoded(await fileBase64(next)); } catch { setError('Không đọc được file đã chọn.'); }
   }
+  function useSheet(workbook: Parameters<typeof resolvedSheetFile>[0]) { setFile(resolvedSheetFile(workbook)); setEncoded(workbook.workbookBase64); if (workbook.sheetName) setSheetName(workbook.sheetName); setPreview(null); setError(''); }
   function payload() { return { filename: file?.name, workbookBase64: encoded, sheetName: sheetName || null, mode, connectionId: connectionId || null, overwriteExisting }; }
   async function inspect() {
     if (!file || !encoded) return;
@@ -53,6 +55,7 @@ export default function AttendanceImportDialog({ open, request, download, source
   if (!open) return null;
   return <div className="nova-overlay"><section className="nova-dialog attendance-import-dialog"><header><div><p>NHẬP DỮ LIỆU EXCEL</p><h2>Import chấm công</h2><span>Xem trước và kiểm tra toàn bộ dữ liệu trước khi ghi vào hệ thống.</span></div><button onClick={close}><X /></button></header><div className="nova-dialog-body">
     <div className="attendance-import-choices"><article><span><Download /></span><div><b>Chưa có file import mẫu?</b><p>Tải mẫu chuẩn, điền mỗi nhân viên–mỗi ngày một dòng rồi tải lại tại bước bên dưới.</p></div><button type="button" className="nova-button secondary" disabled={busy === 'template'} onClick={() => void downloadTemplate()}>Tải file mẫu</button></article><article><span><Upload /></span><div><b>Đã có file dữ liệu?</b><p>Chọn file hiện có; hệ thống tự tìm sheet và nhận diện tên cột Việt/Anh.</p></div></article></div>
+    <GoogleSheetSourcePicker request={request} feature="ATTENDANCE" disabled={Boolean(busy)} onResolved={useSheet} />
     <div className="attendance-import-form"><label><span>File Excel .xlsx</span><input type="file" accept=".xlsx" onChange={(event) => void chooseFile(event.target.files?.[0] ?? null)} /></label><label><span>Chế độ nhận diện</span><select value={mode} onChange={(event) => setMode(event.target.value as typeof mode)}><option value="AUTO">Tự nhận diện file chuẩn hoặc AMIS</option><option value="STANDARD">File mẫu chuẩn CTV ERP</option></select></label><label><span>Nguồn AMIS (bắt buộc với file log thô)</span><select value={connectionId} onChange={(event) => setConnectionId(event.target.value)}><option value="">Không chọn — file mẫu chuẩn</option>{sources.filter((source) => source.type === 'AMIS_TIMESHEET').map((source) => <option key={source.id} value={source.id}>{source.name} · AMIS</option>)}</select></label><label><span>Tên sheet (không bắt buộc)</span><input value={sheetName} onChange={(event) => setSheetName(event.target.value)} placeholder="Để trống để tự tìm" /></label><label className="attendance-import-overwrite"><input type="checkbox" checked={overwriteExisting} onChange={(event) => setOverwriteExisting(event.target.checked)} /><span>Thay dữ liệu cũ của cùng nguồn/ID chấm công/ngày</span><small>Chỉ dữ liệu thuộc đúng nguồn được chọn mới bị thay thế.</small></label></div>
     {error && <div className="performance-error"><TriangleAlert />{error}</div>}
     {file && <div className="attendance-import-file"><Table2 /><div><b>{file.name}</b><small>{(file.size / 1024).toFixed(1)} KB</small></div><button className="nova-button primary" disabled={!encoded || busy === 'preview'} onClick={() => void inspect()}><Eye />{busy === 'preview' ? 'Đang kiểm tra…' : 'Xem trước dữ liệu'}</button></div>}

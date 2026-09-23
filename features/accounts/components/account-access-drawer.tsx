@@ -1,5 +1,7 @@
 'use client';
 
+import { appDialog } from '@/lib/ui/app-dialog';
+
 import { KeyRound, Plus, ShieldCheck, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { assignGlobalRole, listAccountRoles, removeAccountRole, resetAccountPassword, type AuthorizedRequest } from '../api/accounts-api';
@@ -66,7 +68,7 @@ export default function AccountAccessDrawer({ account, roles, request, onClose }
   }
 
   async function removeRole(assignment: UserRoleAssignment) {
-    if (!window.confirm(`Gỡ vai trò “${assignment.roleName}” khỏi ${account.username}?`)) return;
+    if (!await appDialog.confirm(`Gỡ vai trò “${assignment.roleName}” khỏi ${account.username}?`)) return;
     setWorking(true);
     setError('');
     try {

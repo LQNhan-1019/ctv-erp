@@ -1,5 +1,7 @@
 'use client';
 
+import { appDialog } from '@/lib/ui/app-dialog';
+
 import { Building2, Check, Folder, KeyRound, Pencil, Plug, Plus, RefreshCw, Save, Search, ShieldCheck, Trash2, Users, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/context/auth-context';
@@ -111,7 +113,7 @@ export default function HrManagementPage() {
   }
 
   async function runRefresh() {
-    if (!sourceId || !window.confirm('Xóa toàn bộ liên kết cơ cấu AMIS HR cũ và nạp lại từ đầu? Dữ liệu nghiệp vụ nội bộ vẫn được giữ nguyên.')) return;
+    if (!sourceId || !await appDialog.confirm('Xóa toàn bộ liên kết cơ cấu AMIS HR cũ và nạp lại từ đầu? Dữ liệu nghiệp vụ nội bộ vẫn được giữ nguyên.')) return;
     setBusy('refresh-amis');
     setError('');
     try {
@@ -126,7 +128,7 @@ export default function HrManagementPage() {
   }
 
   async function runDeleteStructure() {
-    if (!sourceId || !window.confirm('Xóa cơ cấu phòng ban đã đồng bộ từ AMIS HR? Các phòng ban và chức danh AMIS sẽ bị ẩn; hồ sơ nhân viên, chấm công và dữ liệu nghiệp vụ vẫn được giữ nguyên.')) return;
+    if (!sourceId || !await appDialog.confirm('Xóa cơ cấu phòng ban đã đồng bộ từ AMIS HR? Các phòng ban và chức danh AMIS sẽ bị ẩn; hồ sơ nhân viên, chấm công và dữ liệu nghiệp vụ vẫn được giữ nguyên.')) return;
     setBusy('delete-amis-structure');
     setError('');
     try {
@@ -164,7 +166,7 @@ export default function HrManagementPage() {
   }
 
   async function removeEmployee(item: Employee) {
-    if (!window.confirm(`Xóa hồ sơ nhân viên “${item.fullName}” và toàn bộ dữ liệu chấm công liên quan? Tài khoản đăng nhập (nếu có) vẫn được giữ lại nhưng sẽ tự gỡ khỏi hồ sơ.`)) return;
+    if (!await appDialog.confirm(`Xóa hồ sơ nhân viên “${item.fullName}” và toàn bộ dữ liệu chấm công liên quan? Tài khoản đăng nhập (nếu có) vẫn được giữ lại nhưng sẽ tự gỡ khỏi hồ sơ.`)) return;
     setBusy(item.id); setError('');
     try {
       await deleteEmployee(request, item.id);
@@ -176,7 +178,7 @@ export default function HrManagementPage() {
   }
 
   async function removeSelectedEmployees() {
-    if (!selection.selectedIds.length || !window.confirm(`Xóa ${selection.selectedIds.length} hồ sơ nhân viên đã chọn cùng toàn bộ dữ liệu chấm công liên quan? Các tài khoản đăng nhập vẫn được giữ lại.`)) return;
+    if (!selection.selectedIds.length || !await appDialog.confirm(`Xóa ${selection.selectedIds.length} hồ sơ nhân viên đã chọn cùng toàn bộ dữ liệu chấm công liên quan? Các tài khoản đăng nhập vẫn được giữ lại.`)) return;
     setBusy('bulk-employees'); setError('');
     try {
       const result = await deleteEmployees(request, selection.selectedIds);

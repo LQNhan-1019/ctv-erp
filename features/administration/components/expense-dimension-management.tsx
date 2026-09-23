@@ -1,5 +1,7 @@
 'use client';
 
+import { appDialog } from '@/lib/ui/app-dialog';
+
 import { Pencil, Plus, Save, Trash2, X } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { useAuth } from '@/features/auth/context/auth-context';
@@ -42,7 +44,7 @@ export default function ExpenseDimensionManagement({ units, branches, department
   }
 
   async function remove(kind: Kind, item: Dimension) {
-    if (!window.confirm(`Xóa “${item.name}”? Dữ liệu đang được sử dụng sẽ không thể xóa.`)) return;
+    if (!await appDialog.confirm(`Xóa “${item.name}”? Dữ liệu đang được sử dụng sẽ không thể xóa.`)) return;
     setBusy(true); setError('');
     try {
       if (kind === 'branch') await deleteExpenseBranch(request, item.id);

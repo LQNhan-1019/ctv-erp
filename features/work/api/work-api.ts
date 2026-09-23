@@ -1,5 +1,5 @@
 import type { ApiRequestOptions } from '@/lib/api/client';
-import type { CatalogImportInput, CatalogImportPreview, CatalogImportResult, CatalogInput, CategoryInput, EmployeeOption, WorkCapabilities, WorkCatalog, WorkCategory, WorkDashboard, WorkImportInput, WorkImportPreview, WorkImportResult, WorkItemInput, WorkPlan } from '../types/work';
+import type { AssignmentInput, CatalogImportInput, CatalogImportPreview, CatalogImportResult, CatalogInput, CategoryInput, EmployeeOption, WorkCapabilities, WorkCatalog, WorkCategory, WorkDashboard, WorkImportInput, WorkImportPreview, WorkImportResult, WorkItemInput, WorkPlan } from '../types/work';
 type Request = <T>(path:string, options?:ApiRequestOptions)=>Promise<T>;
 export const getWorkCapabilities=(request:Request)=>request<WorkCapabilities>('/api/hr/work/capabilities');
 export const listWorkEmployees=(request:Request)=>request<EmployeeOption[]>('/api/hr/work/employees');
@@ -14,6 +14,7 @@ export const updateCatalog=(request:Request,id:string,body:CatalogInput)=>reques
 export const deleteCatalog=(request:Request,id:string)=>request<void>(`/api/hr/work/catalogs/${id}`,{method:'DELETE'});
 export const listPlans=(request:Request,month:string,employeeId='')=>request<WorkPlan[]>(`/api/hr/work/plans?month=${month}${employeeId?`&employeeId=${employeeId}`:''}`);
 export const createPlan=(request:Request,employeeId:string,month:string,notes:string|null)=>request<WorkPlan>('/api/hr/work/plans',{method:'POST',body:{employeeId,month,notes}});
+export const assignWork=(request:Request,body:AssignmentInput)=>request<WorkPlan>('/api/hr/work/assignments',{method:'POST',body});
 export const updatePlan=(request:Request,id:string,notes:string|null)=>request<WorkPlan>(`/api/hr/work/plans/${id}`,{method:'PUT',body:{notes}});
 export const deletePlan=(request:Request,id:string)=>request<void>(`/api/hr/work/plans/${id}`,{method:'DELETE'});
 export const createItem=(request:Request,planId:string,body:WorkItemInput)=>request<WorkPlan>(`/api/hr/work/plans/${planId}/items`,{method:'POST',body});
@@ -22,7 +23,10 @@ export const updateItem=(request:Request,id:string,body:WorkItemInput)=>request<
 export const deleteItem=(request:Request,id:string)=>request<void>(`/api/hr/work/items/${id}`,{method:'DELETE'});
 export const saveDaily=(request:Request,itemId:string,body:{workDate:string;quantity:number;progressPercent:number|null;details:string|null;blockers:string|null;evidenceUrl:string|null})=>request<WorkPlan>(`/api/hr/work/items/${itemId}/daily`,{method:'PUT',body});
 export const deleteDaily=(request:Request,id:string)=>request<void>(`/api/hr/work/daily/${id}`,{method:'DELETE'});
+export const uploadWorkEvidence=(request:Request,dailyId:string,file:File)=>{const body=new FormData();body.append('file',file);return request(`/api/hr/work/daily/${dailyId}/evidence`,{method:'POST',body});};
+export const deleteWorkEvidence=(request:Request,dailyId:string,fileId:string)=>request<void>(`/api/hr/work/daily/${dailyId}/evidence/${fileId}`,{method:'DELETE'});
 export const submitPlan=(request:Request,id:string,comments:string|null)=>request<WorkPlan>(`/api/hr/work/plans/${id}/submit`,{method:'POST',body:{comments}});
+export const withdrawPlan=(request:Request,id:string)=>request<WorkPlan>(`/api/hr/work/plans/${id}/withdraw`,{method:'POST'});
 export const approvePlan=(request:Request,id:string,comments:string|null)=>request<WorkPlan>(`/api/hr/work/plans/${id}/approve`,{method:'POST',body:{comments}});
 export const rejectPlan=(request:Request,id:string,comments:string)=>request<WorkPlan>(`/api/hr/work/plans/${id}/reject`,{method:'POST',body:{comments}});
 export const previewWorkImport=(request:Request,body:WorkImportInput)=>request<WorkImportPreview>('/api/hr/work/import/preview',{method:'POST',body});

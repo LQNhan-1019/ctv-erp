@@ -1,9 +1,11 @@
 'use client';
 
-import { Check, Save, TriangleAlert } from 'lucide-react';
+import { appDialog } from '@/lib/ui/app-dialog';
+
+import { Check, Save, Trash2, TriangleAlert } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/context/auth-context';
-import { createGoal, listGoals, listPerformanceMetrics, updateGoal } from '../api/performance-api';
+import { createGoal, deleteGoal, listGoals, listPerformanceMetrics, updateGoal } from '../api/performance-api';
 import type { Goal, GoalFramework, GoalInput, GoalStatus, PerformanceMetric } from '../types/performance';
 
 type Draft = {
@@ -102,6 +104,18 @@ export default function GoalManagementPage() {
     }
   }
 
+  async function remove(metric: PerformanceMetric, goal: Goal) {
+    if (!await appDialog.confirm(`Xóa mục tiêu “${goal.objectiveTitle}” của tháng ${month}? Số liệu thực hiện hằng ngày không bị xóa.`)) return;
+    setSaving(metric.id); setError(''); setMessage('');
+    try {
+      await deleteGoal(request, goal.id);
+      setGoals(current => current.filter(item => item.id !== goal.id));
+      setDrafts(current => ({ ...current, [metric.id]: { framework: 'KPI', title: metric.name, target: '', weight: '100', status: 'ACTIVE' } }));
+      setMessage(`Đã xóa mục tiêu “${goal.objectiveTitle}”. Dashboard vẫn giữ số liệu thực hiện.`);
+    } catch (reason) { setError(reason instanceof Error ? reason.message : 'Không thể xóa mục tiêu'); }
+    finally { setSaving(''); }
+  }
+
   return (
     <div className="nova-account-page performance-page">
       <header className="nova-page-header performance-header">
@@ -127,7 +141,7 @@ export default function GoalManagementPage() {
             <label><span>Giá trị mục tiêu</span><input disabled={!canManage} type="number" min="0.001" step="0.001" value={draft.target} placeholder="Chưa giao" onChange={(event) => patchDraft(metric.id, { target: event.target.value })} /></label>
             <label><span>Trọng số %</span><input disabled={!canManage} type="number" min="0.01" max="100" step="0.01" value={draft.weight} onChange={(event) => patchDraft(metric.id, { weight: event.target.value })} /></label>
             <label><span>Trạng thái</span><select disabled={!canManage} value={draft.status} onChange={(event) => patchDraft(metric.id, { status: event.target.value as GoalStatus })}><option value="DRAFT">Nháp</option><option value="ACTIVE">Đang áp dụng</option><option value="CLOSED">Đã chốt</option></select></label>
-            <div className="performance-goal-action">{goal && <span className="goal-progress">{Math.round(goal.progressPercent)}%</span>}{canManage && <button className="nova-button primary" onClick={() => void save(metric)} disabled={saving === metric.id}><Save />{saving === metric.id ? 'Đang lưu…' : goal ? 'Cập nhật' : 'Giao mục tiêu'}</button>}</div>
+            <div className="performance-goal-action">{goal && <span className="goal-progress">{Math.round(goal.progressPercent)}%</span>}{canManage && goal && <button className="nova-button danger" title="Xóa mục tiêu, giữ nguyên số liệu thực hiện" onClick={() => void remove(metric, goal)} disabled={saving === metric.id}><Trash2/>Xóa</button>}{canManage && <button className="nova-button primary" onClick={() => void save(metric)} disabled={saving === metric.id}><Save />{saving === metric.id ? 'Đang xử lý…' : goal ? 'Cập nhật' : 'Giao mục tiêu'}</button>}</div>
           </article>;
         })}
       </div>}

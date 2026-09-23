@@ -1,5 +1,7 @@
 'use client';
 
+import { appDialog } from '@/lib/ui/app-dialog';
+
 import { CalendarDays, Clock3, Pencil, Save, Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import type { ApiRequestOptions } from '@/lib/api/client';
@@ -73,7 +75,7 @@ export default function ShiftSchedulingPanel({ request, shifts, employees, busy,
   return <div className="attendance-scheduling-layout">
     <section className="attendance-panel">
       <header><div><h2>Danh sách ca</h2><p>Thời gian đủ công được tính tự động từ giờ vào, giờ ra và giờ nghỉ.</p></div></header>
-      <div className="shift-list">{shifts.map((shift) => <article key={shift.id} className={!shift.active ? 'inactive' : ''}><span><Clock3 /></span><div><b>{shift.name}</b><small>{shift.code} · {shift.startTime.slice(0, 5)}–{shift.endTime.slice(0, 5)} · {shift.fullDayMinutes} phút</small></div><div className="shift-row-actions"><button type="button" onClick={() => edit(shift)} aria-label="Sửa ca"><Pencil /></button><button type="button" className="danger" onClick={() => { if (window.confirm(`Xóa ca ${shift.name}? Ca đã phát sinh bảng công sẽ được ngừng sử dụng để giữ lịch sử.`)) void execute('delete-shift', () => deleteShift(request, shift.id)); }} aria-label="Xóa ca"><Trash2 /></button></div></article>)}</div>
+      <div className="shift-list">{shifts.map((shift) => <article key={shift.id} className={!shift.active ? 'inactive' : ''}><span><Clock3 /></span><div><b>{shift.name}</b><small>{shift.code} · {shift.startTime.slice(0, 5)}–{shift.endTime.slice(0, 5)} · {shift.fullDayMinutes} phút</small></div><div className="shift-row-actions"><button type="button" onClick={() => edit(shift)} aria-label="Sửa ca"><Pencil /></button><button type="button" className="danger" onClick={async () => { if (await appDialog.confirm(`Xóa ca ${shift.name}? Ca đã phát sinh bảng công sẽ được ngừng sử dụng để giữ lịch sử.`)) void execute('delete-shift', () => deleteShift(request, shift.id)); }} aria-label="Xóa ca"><Trash2 /></button></div></article>)}</div>
     </section>
     <section className="attendance-panel attendance-form">
       <h2>{editingId ? 'Sửa ca làm việc' : 'Tạo ca làm việc'}</h2>
@@ -87,7 +89,7 @@ export default function ShiftSchedulingPanel({ request, shifts, employees, busy,
       </form>
       <hr />
       <h2>Phân ca hàng loạt & lịch lặp</h2>
-      <form onSubmit={(event) => { void submitSchedule(event).catch((cause) => window.alert(cause instanceof Error ? cause.message : 'Không thể phân ca')); }}>
+      <form onSubmit={(event) => { void submitSchedule(event).catch((cause) => void appDialog.alert(cause instanceof Error ? cause.message : 'Không thể phân ca')); }}>
         <div className="nova-form-grid"><label><span>Tên lịch</span><input name="name" placeholder="Ca hành chính T2–T7" required /></label><label><span>Ca áp dụng</span><select name="shiftId" required>{shifts.filter((item) => item.active).map((shift) => <option key={shift.id} value={shift.id}>{shift.name}</option>)}</select></label></div>
         <div className="nova-form-grid"><label><span>Từ ngày</span><input name="fromDate" type="date" required /></label><label><span>Đến ngày</span><input name="toDate" type="date" required /></label></div>
         <label><span>Chu kỳ</span><select value={recurrence} onChange={(event) => setRecurrence(event.target.value as typeof recurrence)}><option value="DAILY">Theo ngày</option><option value="WEEKLY">Theo tuần</option><option value="MONTHLY">Theo tháng</option><option value="YEARLY">Theo năm</option></select></label>
@@ -98,7 +100,7 @@ export default function ShiftSchedulingPanel({ request, shifts, employees, busy,
         <label className="attendance-inline-check"><input name="overwriteExisting" type="checkbox" />Ghi đè ca đã phân trong cùng ngày</label>
         <button className="nova-button primary" disabled={busy === 'schedule' || !selectedEmployees.length}><CalendarDays />Tạo lịch phân ca</button>
       </form>
-      {rules.length > 0 && <div className="schedule-rule-list"><h3>Lịch đã tạo</h3>{rules.map((rule) => <article key={rule.id}><div><b>{rule.name}</b><small>{rule.shiftName} · {rule.recurrenceType} · {rule.fromDate} → {rule.toDate}</small></div><span>{rule.employeeCount} NV · {rule.assignedDays} lượt</span><button type="button" onClick={() => { if (window.confirm('Xóa lịch và các phân ca từ hôm nay trở đi?')) void execute('delete-schedule', () => deleteSchedule(request, rule.id)).then(refreshRules); }}><Trash2 /></button></article>)}</div>}
+      {rules.length > 0 && <div className="schedule-rule-list"><h3>Lịch đã tạo</h3>{rules.map((rule) => <article key={rule.id}><div><b>{rule.name}</b><small>{rule.shiftName} · {rule.recurrenceType} · {rule.fromDate} → {rule.toDate}</small></div><span>{rule.employeeCount} NV · {rule.assignedDays} lượt</span><button type="button" onClick={async () => { if (await appDialog.confirm('Xóa lịch và các phân ca từ hôm nay trở đi?')) void execute('delete-schedule', () => deleteSchedule(request, rule.id)).then(refreshRules); }}><Trash2 /></button></article>)}</div>}
     </section>
   </div>;
 }

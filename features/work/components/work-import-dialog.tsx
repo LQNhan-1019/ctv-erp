@@ -3,6 +3,7 @@
 import { Eye, Table2, TriangleAlert, Upload, X } from 'lucide-react';
 import { useState } from 'react';
 import type { ApiRequestOptions } from '@/lib/api/client';
+import GoogleSheetSourcePicker, { resolvedSheetFile } from '@/features/import-sources/components/google-sheet-source-picker';
 import { importWorkWorkbook, previewWorkImport } from '../api/work-api';
 import type { EmployeeOption, WorkImportInput, WorkImportPreview, WorkImportResult } from '../types/work';
 
@@ -16,10 +17,12 @@ export default function WorkImportDialog({employees,defaultEmployeeId,month,requ
   const [sheetName,setSheetName]=useState('');const [replaceExisting,setReplaceExisting]=useState(false);
   const [preview,setPreview]=useState<WorkImportPreview|null>(null);const [busy,setBusy]=useState('');const [error,setError]=useState('');
   async function chooseFile(next:File|null){setFile(next);setPreview(null);setError('');setEncoded('');if(!next)return;if(!next.name.toLowerCase().endsWith('.xlsx')){setError('Chỉ chấp nhận file Excel .xlsx.');return;}if(next.size>10*1024*1024){setError('File Excel tối đa 10 MB.');return;}try{setEncoded(await fileBase64(next));}catch{setError('Không đọc được file đã chọn.');}}
+  function useSheet(workbook:Parameters<typeof resolvedSheetFile>[0]){setFile(resolvedSheetFile(workbook));setEncoded(workbook.workbookBase64);if(workbook.sheetName)setSheetName(workbook.sheetName);setPreview(null);setError('');}
   function payload():WorkImportInput{return{employeeId,month,sheetName:sheetName.trim()||null,filename:file?.name??'',workbookBase64:encoded,replaceExisting};}
   async function inspect(){if(!employeeId||!encoded)return;setBusy('preview');setError('');try{setPreview(await previewWorkImport(request,payload()));}catch(cause){setPreview(null);setError(cause instanceof Error?cause.message:'Không xem trước được file Excel');}finally{setBusy('');}}
   async function commit(){if(!preview||preview.invalidRows)return;setBusy('import');setError('');try{const result=await importWorkWorkbook(request,payload());await imported(result,employeeId);close();}catch(cause){setError(cause instanceof Error?cause.message:'Không import được dữ liệu công việc');}finally{setBusy('');}}
   return <div className="nova-overlay"><section className="nova-dialog attendance-import-dialog work-import-dialog"><header><div><p>NHẬP DỮ LIỆU EXCEL</p><h2>Import công việc hàng ngày</h2><span>Nhận dạng form Cập nhật CV hàng ngày, xem trước rồi mới ghi dữ liệu.</span></div><button onClick={close}><X/></button></header><div className="nova-dialog-body">
+    <GoogleSheetSourcePicker request={request} feature="WORK_PLAN" disabled={Boolean(busy)} onResolved={useSheet}/>
     <div className="work-import-controls"><label><span>Nhân viên nhận dữ liệu</span><select value={employeeId} onChange={event=>{setEmployeeId(event.target.value);setPreview(null);}}><option value="">Chọn nhân viên</option>{employees.map(employee=><option key={employee.id} value={employee.id}>{employee.employeeCode} · {employee.fullName} · {employee.businessUnitName}</option>)}</select></label><label><span>Tháng đích</span><input value={month} readOnly/></label><label><span>Tên sheet (không bắt buộc)</span><input value={sheetName} onChange={event=>{setSheetName(event.target.value);setPreview(null);}} placeholder="Tự tìm theo tháng, VD. Tháng 9.26"/></label><label><span>File Excel .xlsx</span><input type="file" accept=".xlsx" onChange={event=>void chooseFile(event.target.files?.[0]??null)}/></label><label className="work-import-replace"><input type="checkbox" checked={replaceExisting} onChange={event=>setReplaceExisting(event.target.checked)}/><span>Thay toàn bộ công việc hiện có của nhân viên trong tháng này</span></label></div>
     <div className="nova-info-note"><Table2/><span>Hệ thống đọc cột B–E và số lượng từng ngày ở G–AK. Bảng kết quả công thức phía dưới sheet sẽ không bị import lặp.</span></div>
     {error&&<div className="performance-error"><TriangleAlert/>{error}</div>}

@@ -1,5 +1,7 @@
 'use client';
 
+import { appDialog } from '@/lib/ui/app-dialog';
+
 import { KeyRound, Plus, ShieldCheck, Trash2, UserRound, UsersRound, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/context/auth-context';
@@ -67,7 +69,7 @@ export default function EmployeeAccountDialog({ employee, employees, onClose, on
   }
 
   async function unlink() {
-    if (!employee.authUserId || !window.confirm(`Gỡ tài khoản “${employee.authUsername}” khỏi hồ sơ ${employee.fullName}?`)) return;
+    if (!employee.authUserId || !await appDialog.confirm(`Gỡ tài khoản “${employee.authUsername}” khỏi hồ sơ ${employee.fullName}?`)) return;
     setBusy(true); setError('');
     try {
       await unlinkEmployeeAccount(request, employee.id);
@@ -97,7 +99,7 @@ export default function EmployeeAccountDialog({ employee, employees, onClose, on
   }
 
   async function removeRole(assignment: UserRoleAssignment) {
-    if (!employee.authUserId || !window.confirm(`Gỡ vai trò “${assignment.roleName}” khỏi ${employee.fullName}?`)) return;
+    if (!employee.authUserId || !await appDialog.confirm(`Gỡ vai trò “${assignment.roleName}” khỏi ${employee.fullName}?`)) return;
     setBusy(true); setError('');
     try {
       await removeAccountRole(request, employee.authUserId, assignment.assignmentId);

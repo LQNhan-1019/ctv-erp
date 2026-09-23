@@ -1,5 +1,7 @@
 'use client';
 
+import { appDialog } from '@/lib/ui/app-dialog';
+
 import { Check, KeyRound, Plus, RefreshCw, Save, Search, ShieldCheck, Trash2, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/context/auth-context';
@@ -189,7 +191,7 @@ export default function RoleManagement() {
 
   async function handleDelete() {
     if (!selectedRole || selectedRole.systemRole) return;
-    if (!window.confirm(`Xóa vai trò “${selectedRole.name}”? Mọi phân công đang dùng vai trò này cũng sẽ bị gỡ.`)) return;
+    if (!await appDialog.confirm(`Xóa vai trò “${selectedRole.name}”? Mọi phân công đang dùng vai trò này cũng sẽ bị gỡ.`)) return;
     setSaving(true);
     setError('');
     try {

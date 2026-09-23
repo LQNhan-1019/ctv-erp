@@ -1,5 +1,7 @@
 'use client';
 
+import { appDialog } from '@/lib/ui/app-dialog';
+
 import { Check, Pencil, Plus, Save, ShieldCheck, Trash2, TriangleAlert, Upload, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/context/auth-context';
@@ -61,11 +63,11 @@ export default function DocumentManagementPage() {
     finally { setBusy(''); }
   }
   async function removeDocument(item: ComplianceDocument) {
-    if (!window.confirm(`Xóa giấy tờ “${item.documentName}”?`)) return;
+    if (!await appDialog.confirm(`Xóa giấy tờ “${item.documentName}”?`)) return;
     setBusy(item.id); try { await deleteDocument(request, item.id); setToast('Đã xóa giấy tờ'); await load(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể xóa'); } finally { setBusy(''); }
   }
   async function removeSelectedDocuments(ids: string[]) {
-    if (!ids.length || !window.confirm(`Xóa ${ids.length} giấy tờ đã chọn? Thao tác này không thể hoàn tác.`)) return false;
+    if (!ids.length || !await appDialog.confirm(`Xóa ${ids.length} giấy tờ đã chọn? Thao tác này không thể hoàn tác.`)) return false;
     setBusy('bulk-documents'); setError('');
     try { const result = await deleteDocuments(request, ids); setToast(`Đã xóa ${result.deleted} giấy tờ`); await load(); return true; }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể xóa các giấy tờ đã chọn'); return false; }
@@ -75,7 +77,7 @@ export default function DocumentManagementPage() {
     setBusy('type'); try { if (typeEditing) await updateDocumentType(request, typeEditing.id, input); else await createDocumentType(request, input); setTypeEditing(undefined); setToast('Đã lưu loại giấy tờ'); await load(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể lưu loại giấy tờ'); } finally { setBusy(''); }
   }
   async function removeType(item: DocumentType) {
-    if (!window.confirm(`Xóa loại “${item.name}”?`)) return;
+    if (!await appDialog.confirm(`Xóa loại “${item.name}”?`)) return;
     setBusy(item.id); try { await deleteDocumentType(request, item.id); setToast('Đã xóa loại giấy tờ'); await load(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể xóa loại'); } finally { setBusy(''); }
   }
 

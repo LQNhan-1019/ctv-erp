@@ -1,5 +1,7 @@
 'use client';
 
+import { appDialog } from '@/lib/ui/app-dialog';
+
 import { Check, Database, Download, Pencil, Plus, Save, ShieldCheck, Trash2, Upload, X } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/context/auth-context';
@@ -71,7 +73,7 @@ export default function ExpenseManagementPage() {
     finally { setBusy(''); }
   }
   async function removeExpense(item: Expense) {
-    if (!window.confirm(`Xóa khoản ${item.expenseNo}?`)) return;
+    if (!await appDialog.confirm(`Xóa khoản ${item.expenseNo}?`)) return;
     setBusy(item.id); try { await deleteExpense(request, item.id); setToast('Đã xóa chi phí'); await load(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể xóa'); } finally { setBusy(''); }
   }
   async function applyActualAsPlanned(item: Expense) {
@@ -81,7 +83,7 @@ export default function ExpenseManagementPage() {
     finally { setBusy(''); }
   }
   async function removeSelectedExpenses(ids: string[]) {
-    if (!ids.length || !window.confirm(`Xóa ${ids.length} khoản chi phí đã chọn? Thao tác này không thể hoàn tác.`)) return false;
+    if (!ids.length || !await appDialog.confirm(`Xóa ${ids.length} khoản chi phí đã chọn? Thao tác này không thể hoàn tác.`)) return false;
     setBusy('bulk-expenses'); setError('');
     try { const result = await deleteExpenses(request, ids); setToast(`Đã xóa ${result.deleted} khoản chi phí`); await load(); return true; }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể xóa các khoản đã chọn'); return false; }
@@ -91,7 +93,7 @@ export default function ExpenseManagementPage() {
     setBusy('category'); try { if (categoryEditing) await updateExpenseCategory(request, categoryEditing.id, input); else await createExpenseCategory(request, input); setCategoryEditing(undefined); setToast('Đã lưu danh mục chi phí'); await load(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể lưu danh mục'); } finally { setBusy(''); }
   }
   async function removeCategory(item: ExpenseCategory) {
-    if (!window.confirm(`Xóa danh mục “${item.name}”?`)) return;
+    if (!await appDialog.confirm(`Xóa danh mục “${item.name}”?`)) return;
     setBusy(item.id); try { await deleteExpenseCategory(request, item.id); setToast('Đã xóa danh mục'); await load(); } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể xóa danh mục'); } finally { setBusy(''); }
   }
   async function exportWorkbook() {

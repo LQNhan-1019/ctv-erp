@@ -7,7 +7,7 @@ import type { ConnectionType, IntegrationConnection, IntegrationConnectionInput 
 const typeLabels: Record<ConnectionType, string> = {
   SMTP: 'Máy chủ email (SMTP)',
   FILE_SERVER: 'Máy chủ lưu trữ',
-  GOOGLE_DRIVE: 'Google Drive',
+  GOOGLE_DRIVE: 'Google Drive & Google Sheets',
   AMIS_HR: 'MISA AMIS Nhân sự',
   AMIS_TIMESHEET: 'MISA AMIS Chấm công',
   AMIS_ACCOUNTING: 'MISA AMIS Kế toán',
@@ -157,10 +157,10 @@ export default function IntegrationDialog({ connection, onClose, onSave }: {
             )}
             {type === 'FILE_SERVER' && <label><span>Thư mục lưu trữ trên server</span><div className="nova-field"><Server /><input name="baseDirectory" defaultValue={config.baseDirectory} placeholder="D:\ERP_BACKUPS hoặc /data/erp-backups" required /></div></label>}
             {type === 'GOOGLE_DRIVE' && (
-              <div className="nova-form-grid">
+              <><div className="nova-form-grid">
                 <label><span>Google Drive folder ID</span><div className="nova-field"><Database /><input name="folderId" defaultValue={config.folderId} placeholder="1AbCdEf…" required /></div></label>
                 <label><span>Biến môi trường chứa đường dẫn credential</span><div className="nova-field"><LockKeyhole /><input name="credentialFileEnv" defaultValue={secrets.credentialFileEnv} pattern="[A-Z][A-Z0-9_]{2,127}" placeholder="ERP_GDRIVE_CREDENTIAL_FILE" required /></div></label>
-              </div>
+              </div><div className="nova-info-note"><Database /><span>Cùng credential này được dùng để đọc Google Sheets. Hãy chia sẻ từng bảng tính cho email <b>client_email</b> trong file service account; chỉ cấp quyền Người xem.</span></div></>
             )}
             {type === 'AMIS_TIMESHEET' && (
               <>

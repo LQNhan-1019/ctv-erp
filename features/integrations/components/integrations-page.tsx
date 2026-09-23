@@ -7,11 +7,12 @@ import { createIntegrationConnection, listIntegrationConnections, testIntegratio
 import type { ConnectionType, IntegrationConnection, IntegrationConnectionInput } from '../types/integration';
 import IntegrationDialog from './integration-dialog';
 import BusinessStorageRouting from './business-storage-routing';
+import GoogleSheetSourcesPanel from '@/features/import-sources/components/google-sheet-sources-panel';
 
 const typeMeta: Record<ConnectionType, { label: string; icon: LucideIcon; description: string }> = {
   SMTP: { label: 'Email SMTP', icon: Mail, description: 'Gửi email thông báo và cảnh báo thời hạn.' },
   FILE_SERVER: { label: 'Máy chủ tệp', icon: Server, description: 'Lưu bản sao dữ liệu vào hạ tầng nội bộ.' },
-  GOOGLE_DRIVE: { label: 'Google Drive', icon: Database, description: 'Đưa bản sao mã hóa lên thư mục Drive.' },
+  GOOGLE_DRIVE: { label: 'Google Drive & Sheets', icon: Database, description: 'Lưu tệp trên Drive và đọc Google Sheet cho các chức năng import.' },
   AMIS_HR: { label: 'AMIS Nhân sự', icon: Users, description: 'Đồng bộ phòng ban, vị trí công việc và hồ sơ nhân viên.' },
   AMIS_TIMESHEET: { label: 'AMIS Chấm công', icon: Clock3, description: 'Đọc dữ liệu chấm công thô bằng HMAC-SHA256.' },
   AMIS_ACCOUNTING: { label: 'AMIS Kế toán', icon: Plug, description: 'Kết nối dữ liệu kế toán bằng access token riêng của MISA.' },
@@ -143,6 +144,7 @@ export default function IntegrationsPage() {
         {!loading && visible.length === 0 && <div className="nova-account-empty nova-grid-empty"><span><Plug /></span><b>Chưa có kết nối</b><p>Thêm dịch vụ email, lưu trữ hoặc MISA AMIS để sử dụng các tính năng nền tảng.</p></div>}
       </section>
       <BusinessStorageRouting connections={connections} canManage={canManage} />
+      <GoogleSheetSourcesPanel request={request} connections={connections} canManage={canManage} />
       {editing !== undefined && <IntegrationDialog connection={editing} onClose={() => setEditing(undefined)} onSave={save} />}
       {toast && <div className="nova-admin-toast"><span><Check /></span>{toast}</div>}
     </div>

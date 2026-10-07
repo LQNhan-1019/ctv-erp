@@ -1,5 +1,5 @@
 import type { ApiRequestOptions } from '@/lib/api/client';
-import type { AdministrativeImportPreview, AdministrativeImportResult, BulkDeleteResult, BusinessUnit, ComplianceDocument, DocumentDashboard, DocumentInput, DocumentType, Expense, ExpenseBranch, ExpenseBranchInput, ExpenseCategory, ExpenseDashboard, ExpenseDepartment, ExpenseDepartmentInput, ExpenseInput, ExpenseInvoice, ExpenseItem, ExpenseItemInput } from '../types/administration';
+import type { AdministrativeImportPreview, AdministrativeImportResult, BulkDeleteResult, BusinessUnit, ComplianceDocument, DocumentDashboard, DocumentFile, DocumentInput, DocumentType, Expense, ExpenseBranch, ExpenseBranchInput, ExpenseCategory, ExpenseDashboard, ExpenseDepartment, ExpenseDepartmentInput, ExpenseInput, ExpenseInvoice, ExpenseItem, ExpenseItemInput } from '../types/administration';
 type Request = <T>(path: string, options?: ApiRequestOptions) => Promise<T>;
 const query = (values: Record<string, string>) => { const result = new URLSearchParams(); Object.entries(values).forEach(([key, value]) => value && result.set(key, value)); return result.toString(); };
 export const listBusinessUnits = (request: Request) => request<BusinessUnit[]>('/api/admin/reference/business-units');
@@ -39,5 +39,8 @@ export const createDocument = (request: Request, body: DocumentInput) => request
 export const updateDocument = (request: Request, id: string, body: DocumentInput) => request<ComplianceDocument>(`/api/admin/documents/${id}`, { method: 'PUT', body });
 export const deleteDocument = (request: Request, id: string) => request<void>(`/api/admin/documents/${id}`, { method: 'DELETE' });
 export const deleteDocuments = (request: Request, ids: string[]) => request<BulkDeleteResult>('/api/admin/documents/bulk-delete', { method: 'POST', body: { ids } });
+export const listDocumentFiles = (request: Request, documentId: string) => request<DocumentFile[]>(`/api/admin/documents/${documentId}/files`);
+export const uploadDocumentFile = (request: Request, documentId: string, file: File) => { const body = new FormData(); body.set('file', file); return request<DocumentFile>(`/api/admin/documents/${documentId}/files`, { method: 'POST', body }); };
+export const deleteDocumentFile = (request: Request, documentId: string, fileId: string) => request<void>(`/api/admin/documents/${documentId}/files/${fileId}`, { method: 'DELETE' });
 export const previewAdministrativeImport = (request: Request, type: 'EXPENSE' | 'DOCUMENT', body: unknown) => request<AdministrativeImportPreview>(`/api/admin/${type === 'EXPENSE' ? 'expenses' : 'documents'}/import/preview`, { method: 'POST', body });
 export const importAdministrativeWorkbook = (request: Request, type: 'EXPENSE' | 'DOCUMENT', body: unknown) => request<AdministrativeImportResult>(`/api/admin/${type === 'EXPENSE' ? 'expenses' : 'documents'}/import`, { method: 'POST', body });

@@ -1,7 +1,7 @@
 'use client';
 
-import { Database, LockKeyhole, Mail, Plug, Save, Server, ShieldCheck, TriangleAlert, Users, X } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { Cpu, Database, Info, LockKeyhole, Mail, Plug, Save, Server, Settings2, ShieldCheck, TriangleAlert, Users, X } from 'lucide-react';
+import { FormEvent, useRef, useState } from 'react';
 import type { ConnectionType, IntegrationConnection, IntegrationConnectionInput } from '../types/integration';
 
 const typeLabels: Record<ConnectionType, string> = {
@@ -19,6 +19,7 @@ function field(data: FormData, name: string) {
 }
 
 type AttendanceTransportProtocol = 'TCP_CONNECTOR' | 'UDP_LEGACY';
+type DialogSection = 'general' | 'service' | 'advanced';
 
 export default function IntegrationDialog({ connection, onClose, onSave }: {
   connection: IntegrationConnection | null;
@@ -34,8 +35,24 @@ export default function IntegrationDialog({ connection, onClose, onSave }: {
   const [useWebAddress, setUseWebAddress] = useState(() => connection?.configuration.useWebAddress === 'true' || connection?.configuration.connectionMode === 'DDNS');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [activeSection, setActiveSection] = useState<DialogSection>('general');
+  const bodyRef = useRef<HTMLDivElement>(null);
   const config = connection?.configuration ?? {};
   const secrets = connection?.secretRefs ?? {};
+
+  function scrollToSection(section: DialogSection) {
+    const container = bodyRef.current;
+    const target = container?.querySelector<HTMLElement>(`[data-integration-section="${section}"]`);
+    if (!container || !target) return;
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    container.scrollTo({
+      top: Math.max(0, target.offsetTop - 16),
+      behavior: reduceMotion ? 'auto' : 'smooth',
+    });
+    setActiveSection(section);
+    target.focus({ preventScroll: true });
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -125,18 +142,27 @@ export default function IntegrationDialog({ connection, onClose, onSave }: {
       <section className="nova-dialog nova-integration-dialog" role="dialog" aria-modal="true" aria-labelledby="integration-dialog-title">
         <header><div><p>{connection ? 'CHỈNH SỬA KẾT NỐI' : 'KẾT NỐI MỚI'}</p><h2 id="integration-dialog-title">{connection ? connection.name : 'Thêm dịch vụ ngoài'}</h2><span>Chỉ lưu thông tin cấu hình và tên biến môi trường, không lưu mật khẩu hay credential.</span></div><button onClick={onClose} aria-label="Đóng"><X /></button></header>
         <form onSubmit={submit}>
-          <div className="nova-dialog-body">
+          <nav className="nova-integration-dialog-nav" aria-label="Đi đến phần cấu hình">
+            <button type="button" className={activeSection === 'general' ? 'active' : ''} aria-label="Đi đến phần Thông tin chung" aria-current={activeSection === 'general' ? 'step' : undefined} onClick={() => scrollToSection('general')}><Info aria-hidden="true" /><span>Thông tin</span></button>
+            <button type="button" className={activeSection === 'service' ? 'active' : ''} aria-label={`Đi đến phần ${type === 'ATTENDANCE_DEVICE' ? 'Thiết bị' : 'Cấu hình dịch vụ'}`} aria-current={activeSection === 'service' ? 'step' : undefined} onClick={() => scrollToSection('service')}><Cpu aria-hidden="true" /><span>{type === 'ATTENDANCE_DEVICE' ? 'Thiết bị' : 'Dịch vụ'}</span></button>
+            {type === 'ATTENDANCE_DEVICE' && <button type="button" className={activeSection === 'advanced' ? 'active' : ''} aria-label="Đi đến phần Kết nối nâng cao" aria-current={activeSection === 'advanced' ? 'step' : undefined} onClick={() => scrollToSection('advanced')}><Settings2 aria-hidden="true" /><span>Nâng cao</span></button>}
+          </nav>
+          <div className="nova-dialog-body nova-integration-dialog-body" ref={bodyRef}>
+            <section className="nova-integration-dialog-section" data-integration-section="general" tabIndex={-1} aria-labelledby="integration-general-heading">
+              <div className="nova-dialog-section-title nova-integration-section-heading"><span><Info aria-hidden="true" /></span><div><b id="integration-general-heading">Thông tin chung</b><small>Tên, loại dịch vụ và trạng thái sử dụng</small></div></div>
             <div className="nova-form-grid">
               <label><span>Mã kết nối</span><div className="nova-field"><Plug /><input name="code" defaultValue={connection?.code} disabled={Boolean(connection)} minLength={3} maxLength={64} placeholder="VD. SMTP_CHINH" required /></div></label>
-              <label><span>Loại dịch vụ</span><select name="connectionType" value={type} onChange={(event) => setType(event.target.value as ConnectionType)} disabled={Boolean(connection)}>{Object.entries(typeLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+              <label><span>Loại dịch vụ</span><select name="connectionType" value={type} onChange={(event) => { setType(event.target.value as ConnectionType); setActiveSection('general'); }} disabled={Boolean(connection)}>{Object.entries(typeLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
             </div>
             <div className="nova-form-grid">
               <label><span>Tên hiển thị</span><input name="name" defaultValue={connection?.name} maxLength={128} placeholder="Tên dễ nhận biết" required /></label>
               <label className="nova-switch-label"><span>Trạng thái</span><div><input type="checkbox" name="active" defaultChecked={connection?.active ?? true} /><b>Cho phép sử dụng</b></div></label>
             </div>
             <label><span>Mô tả</span><textarea className="nova-textarea" name="description" defaultValue={connection?.description ?? ''} rows={2} maxLength={1000} /></label>
+            </section>
 
-            <div className="nova-dialog-section-title"><span>{type === 'SMTP' ? <Mail /> : type === 'FILE_SERVER' ? <Server /> : type.startsWith('AMIS_') ? <Plug /> : <Database />}</span><div><b>{typeLabels[type]}</b><small>Thông số kết nối</small></div></div>
+            <section className="nova-integration-dialog-section" data-integration-section="service" tabIndex={-1} aria-labelledby="integration-service-heading">
+            <div className="nova-dialog-section-title nova-integration-section-heading"><span>{type === 'SMTP' ? <Mail aria-hidden="true" /> : type === 'FILE_SERVER' ? <Server aria-hidden="true" /> : type.startsWith('AMIS_') ? <Plug aria-hidden="true" /> : <Database aria-hidden="true" />}</span><div><b id="integration-service-heading">{typeLabels[type]}</b><small>Thông số kết nối</small></div></div>
             {type === 'SMTP' && (
               <>
                 <div className="nova-form-grid">
@@ -224,18 +250,26 @@ export default function IntegrationDialog({ connection, onClose, onSave }: {
                   <label><span>Seri thiết bị</span><input name="serialNumber" defaultValue={config.serialNumber} placeholder="1313250901558" maxLength={128} /></label>
                   <label><span>Số đăng ký tối đa</span><input name="registrationLimit" type="number" min={1} max={1000000} defaultValue={config.registrationLimit} placeholder="111992" /></label>
                 </div>
-                <label><span>Tên biến môi trường chứa mật khẩu kết nối</span><div className="nova-field"><LockKeyhole /><input name="communicationKeyEnv" defaultValue={secrets.communicationKeyEnv} pattern="[A-Z][A-Z0-9_]{2,127}" placeholder="ERP_ATTENDANCE_DEVICE_KEY" /></div></label>
+              </>
+            )}
+            {type !== 'ATTENDANCE_DEVICE' && <div className="nova-info-note"><ShieldCheck aria-hidden="true" /><span>Giá trị secret phải được cấu hình trong môi trường chạy backend. Giao diện này chỉ lưu tên biến để không làm lộ thông tin nhạy cảm.</span></div>}
+            </section>
+
+            {type === 'ATTENDANCE_DEVICE' && (
+              <section className="nova-integration-dialog-section" data-integration-section="advanced" tabIndex={-1} aria-labelledby="integration-advanced-heading">
+                <div className="nova-dialog-section-title nova-integration-section-heading"><span><Settings2 aria-hidden="true" /></span><div><b id="integration-advanced-heading">Kết nối nâng cao</b><small>Khóa kết nối và dịch vụ connector</small></div></div>
+                <label><span>Tên biến môi trường chứa mật khẩu kết nối</span><div className="nova-field"><LockKeyhole aria-hidden="true" /><input name="communicationKeyEnv" defaultValue={secrets.communicationKeyEnv} pattern="[A-Z][A-Z0-9_]{2,127}" placeholder="ERP_ATTENDANCE_DEVICE_KEY" /></div></label>
                 {transportProtocol === 'TCP_CONNECTOR' && <>
                   <div className="nova-form-grid">
                     <label><span>URL connector lấy log</span><input name="pullUrl" type="url" defaultValue={config.pullUrl} placeholder="http://host.docker.internal:8090/api/attendance/pull" required /></label>
                     <label><span>URL connector nạp nhân viên</span><input name="pushUrl" type="url" defaultValue={config.pushUrl} placeholder="http://host.docker.internal:8090/api/attendance/users" /></label>
                   </div>
-                  <label><span>Tên biến môi trường chứa Bearer token connector</span><div className="nova-field"><LockKeyhole /><input name="pullTokenEnv" defaultValue={secrets.pullTokenEnv} pattern="[A-Z][A-Z0-9_]{2,127}" placeholder="ERP_ATTENDANCE_CONNECTOR_TOKEN" /></div></label>
+                  <label><span>Tên biến môi trường chứa Bearer token connector</span><div className="nova-field"><LockKeyhole aria-hidden="true" /><input name="pullTokenEnv" defaultValue={secrets.pullTokenEnv} pattern="[A-Z][A-Z0-9_]{2,127}" placeholder="ERP_ATTENDANCE_CONNECTOR_TOKEN" /></div></label>
                 </>}
-                <div className="nova-info-note"><TriangleAlert /><span>Chế độ TCP/IP dùng connector chạy SDK của hãng để đọc log và nạp nhân viên. URL nạp nhân viên chỉ bắt buộc khi sử dụng chức năng Quản lý máy; AMIS Chấm công không bị thay đổi.</span></div>
-              </>
+                <div className="nova-info-note"><TriangleAlert aria-hidden="true" /><span>Chế độ TCP/IP dùng connector chạy SDK của hãng để đọc log và nạp nhân viên. URL nạp nhân viên chỉ bắt buộc khi sử dụng chức năng Quản lý máy; AMIS Chấm công không bị thay đổi.</span></div>
+                <div className="nova-info-note"><ShieldCheck aria-hidden="true" /><span>Giá trị secret phải được cấu hình trong môi trường chạy backend. Giao diện này chỉ lưu tên biến để không làm lộ thông tin nhạy cảm.</span></div>
+              </section>
             )}
-            <div className="nova-info-note"><ShieldCheck /><span>Giá trị secret phải được cấu hình trong môi trường chạy backend. Giao diện này chỉ lưu tên biến để không làm lộ thông tin nhạy cảm.</span></div>
             {error && <div className="nova-form-error" role="alert">{error}</div>}
           </div>
           <footer><button type="button" className="nova-button secondary" onClick={onClose}>Hủy</button><button type="submit" className="nova-button primary" disabled={submitting}><Save />{submitting ? 'Đang lưu…' : 'Lưu kết nối'}</button></footer>

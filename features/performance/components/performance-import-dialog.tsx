@@ -40,8 +40,8 @@ export default function PerformanceImportDialog({ month, onClose, onImported }: 
     sequence.current += 1;
     setPreview(null); setSelectedSheet(''); setSourceSheet(''); setError(''); setFile(null);
     if (!next) return;
-    if (!/\.(xlsx|xls)$/i.test(next.name) || next.size > 10 * 1024 * 1024) {
-      setError('Chọn file .xlsx hoặc .xls, tối đa 10 MB.'); return;
+    if (!/\.(xlsx|xls)$/i.test(next.name) || next.size > 199 * 1024 * 1024) {
+      setError('Chọn file .xlsx hoặc .xls theo giới hạn upload hệ thống (dưới 200 MB).'); return;
     }
     setFile(next);
     void inspect(next, '', year);

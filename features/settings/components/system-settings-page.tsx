@@ -1,11 +1,12 @@
 'use client';
 
-import { Building2, CalendarClock, Check, ChevronRight, LayoutDashboard, RefreshCw, Save, Settings, ShieldCheck, type LucideIcon } from 'lucide-react';
+import { Building2, CalendarClock, Check, ChevronRight, HardDrive, LayoutDashboard, RefreshCw, Save, Settings, ShieldCheck, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/features/auth/context/auth-context';
 import { listSystemSettings, updateSystemSetting } from '../api/settings-api';
 import type { SystemSetting } from '../types/setting';
 import DashboardLayoutEditor from './dashboard-layout-editor';
+import ErpSelect from '@/components/ui/erp-select';
 
 const groupMetadata: Record<string, { label: string; description: string; icon: LucideIcon }> = {
   ORGANIZATION: { label: 'Thông tin doanh nghiệp', description: 'Thông tin pháp lý và liên hệ hiển thị xuyên suốt ERP.', icon: Building2 },
@@ -13,7 +14,11 @@ const groupMetadata: Record<string, { label: string; description: string; icon: 
   DOCUMENT: { label: 'Hồ sơ & thời hạn', description: 'Cấu hình cảnh báo bảo hiểm, hợp đồng và giấy tờ.', icon: CalendarClock },
   PERFORMANCE_INPUT: { label: 'Khóa nhập dữ liệu dashboard', description: 'Đặt số ngày nhập bù và khóa nhập mới, sửa, xóa số liệu quá hạn. Áp dụng cả Excel và nhập tay, theo giờ Việt Nam.', icon: CalendarClock },
   DASHBOARD: { label: 'Giao diện dashboard', description: 'Kéo thả, sắp xếp và ẩn hiện các khối dashboard theo nhu cầu điều hành.', icon: LayoutDashboard },
+  STORAGE: { label: 'Tệp & lưu trữ', description: 'Giới hạn dung lượng file tải lên cho Google Drive và các chức năng nghiệp vụ.', icon: HardDrive },
+  AUDIT: { label: 'Lưu trữ nhật ký', description: 'Quy định thời gian giữ lịch sử đăng nhập và thao tác dữ liệu.', icon: ShieldCheck },
 };
+
+const settingUnit = (key: string) => key === 'FILE_UPLOAD.MAX_SIZE_MB' ? 'MB / file' : key === 'AUDIT.RETENTION_DAYS' ? 'ngày' : '';
 
 function formatUpdatedAt(value: string) {
   return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(value));
@@ -120,7 +125,7 @@ export default function SystemSettingsPage() {
                       <div className="nova-setting-copy"><label htmlFor={'setting-' + setting.key}>{setting.displayName}</label><p>{setting.description}</p><code>{setting.key}</code></div>
                       <div className="nova-setting-control">
                         {setting.valueType === 'BOOLEAN' ? (
-                          <select id={'setting-' + setting.key} value={drafts[setting.key] ?? ''} onChange={(event) => setDrafts((current) => ({ ...current, [setting.key]: event.target.value }))} disabled={!canManage || !setting.editable}><option value="true">Bật</option><option value="false">Tắt</option></select>
+                          <ErpSelect value={drafts[setting.key] ?? ''} options={[{ value: 'true', label: 'Bật' }, { value: 'false', label: 'Tắt' }]} onChange={value => setDrafts((current) => ({ ...current, [setting.key]: value }))} disabled={!canManage || !setting.editable} ariaLabel={setting.displayName}/>
                         ) : (
                           <input
                             id={'setting-' + setting.key}
@@ -133,7 +138,7 @@ export default function SystemSettingsPage() {
                             disabled={!canManage || !setting.editable}
                           />
                         )}
-                        <div><small>Cập nhật {formatUpdatedAt(setting.updatedAt)}</small><button className="nova-button secondary" onClick={() => void save(setting)} disabled={!changed || !canManage || savingKey === setting.key}><Save />{savingKey === setting.key ? 'Đang lưu…' : 'Lưu'}</button></div>
+                        <div><small>{settingUnit(setting.key) && <b>{settingUnit(setting.key)} · </b>}Cập nhật {formatUpdatedAt(setting.updatedAt)}</small><button className="nova-button secondary" onClick={() => void save(setting)} disabled={!changed || !canManage || savingKey === setting.key}><Save />{savingKey === setting.key ? 'Đang lưu…' : 'Lưu'}</button></div>
                       </div>
                     </article>
                   );

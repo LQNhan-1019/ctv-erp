@@ -2,11 +2,24 @@
 
 import type { ComponentType, CSSProperties } from 'react';
 import Link from 'next/link';
-import {
-  Bar, BarChart, CartesianGrid, Cell, ComposedChart, Legend, Line,
-  ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from 'recharts';
+import dynamic from 'next/dynamic';
 import { ArrowDownRight, ArrowUpRight, CheckCircle2, CircleAlert, TriangleAlert } from 'lucide-react';
+
+export type { TrendPoint } from './dashboard-charts';
+
+function ChartSkeleton() {
+  return <div className="executive-chart-skeleton" aria-live="polite" aria-busy="true"><span className="sr-only">Đang tải biểu đồ…</span></div>;
+}
+
+export const TrendChart = dynamic(() => import('./dashboard-charts').then(module => module.TrendChartView), {
+  ssr: false,
+  loading: ChartSkeleton,
+});
+
+export const ComparisonBars = dynamic(() => import('./dashboard-charts').then(module => module.ComparisonBarsView), {
+  ssr: false,
+  loading: ChartSkeleton,
+});
 
 export type DashboardTone = 'blue' | 'green' | 'violet' | 'amber' | 'rose' | 'cyan' | 'department';
 
@@ -38,37 +51,13 @@ export function ProgressDonut({ value, label, detail, tone = 'amber' }: { value:
   return <article className={`executive-donut-card tone-${tone}`}><span>{label}</span><div className="executive-donut" style={{ '--donut-value': `${safe * 3.6}deg` } as React.CSSProperties}><strong>{value == null ? '—' : `${Math.round(value)}%`}</strong></div>{detail && <small>{detail}</small>}</article>;
 }
 
-export type TrendPoint = { label: string; revenue: number; grossProfit: number; netProfit: number; target: number | null };
-const trendLabels: Record<string, string> = { revenue: 'Doanh thu', grossProfit: 'Lãi gộp', netProfit: 'LN sau thuế', target: '% hoàn thành' };
-export function TrendChart({ data }: { data: TrendPoint[] }) {
-  return <div className="executive-chart"><ResponsiveContainer width="100%" height={310}><ComposedChart data={data} margin={{ top: 18, right: 8, bottom: 2, left: 0 }}>
-    <CartesianGrid stroke="var(--dashboard-chart-grid)" strokeDasharray="4 5" vertical={false}/><XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: 'var(--dashboard-chart-label)', fontSize: 12 }}/>
-    <YAxis yAxisId="money" tickLine={false} axisLine={false} width={54} tick={{ fill: 'var(--dashboard-chart-label)', fontSize: 12 }} tickFormatter={compactNumber}/><YAxis yAxisId="percent" orientation="right" domain={[0, 120]} tickLine={false} axisLine={false} width={42} tick={{ fill: 'var(--dashboard-chart-muted)', fontSize: 12 }} tickFormatter={(value) => `${value}%`}/>
-    <Tooltip cursor={{ fill: 'var(--dashboard-chart-hover)' }} formatter={(value, name) => [new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Number(value)), trendLabels[String(name)] ?? String(name)]}/>
-    <Legend formatter={(value) => trendLabels[value] ?? value}/><Bar yAxisId="money" dataKey="revenue" fill="var(--dashboard-chart-revenue)" radius={[5, 5, 0, 0]} maxBarSize={38}/>
-    <Line yAxisId="money" type="monotone" dataKey="grossProfit" stroke="var(--dashboard-chart-gross)" strokeWidth={2.5} dot={{ r: 3, fill: 'var(--dashboard-chart-gross)', strokeWidth: 2, stroke: 'var(--dashboard-surface)' }}/>
-    <Line yAxisId="money" type="monotone" dataKey="netProfit" stroke="var(--dashboard-chart-net)" strokeWidth={2.5} dot={{ r: 3, fill: 'var(--dashboard-chart-net)', strokeWidth: 2, stroke: 'var(--dashboard-surface)' }}/>
-    <Line yAxisId="percent" type="monotone" dataKey="target" stroke="var(--dashboard-chart-target)" strokeWidth={2} strokeDasharray="6 5" dot={{ r: 3, fill: 'var(--dashboard-chart-target)' }}/>
-  </ComposedChart></ResponsiveContainer></div>;
-}
-
 export type TableColumn<T> = { key: string; label: string; align?: 'left' | 'right' | 'center'; render: (row: T) => React.ReactNode };
 export function ComparisonTable<T extends { id: string }>({ columns, rows, empty = 'Chưa có dữ liệu trong kỳ này.' }: { columns: TableColumn<T>[]; rows: T[]; empty?: string }) {
-  return <div className="executive-table-wrap"><table className="executive-table"><thead><tr>{columns.map(column => <th key={column.key} className={column.align ?? 'left'}>{column.label}</th>)}</tr></thead><tbody>{rows.map(row => <tr key={row.id}>{columns.map(column => <td key={column.key} className={column.align ?? 'left'}>{column.render(row)}</td>)}</tr>)}</tbody></table>{!rows.length && <div className="executive-table-empty">{empty}</div>}</div>;
-}
-
-const barColors = ['var(--dashboard-chart-revenue)', 'var(--dashboard-chart-net)', 'var(--dashboard-chart-target)', 'var(--dashboard-chart-gross)', 'var(--dashboard-chart-cyan)', 'var(--dashboard-chart-rose)'];
-export function ComparisonBars({ data, unit }: { data: { name: string; value: number }[]; unit: string }) {
-  return <div className="executive-chart compact"><ResponsiveContainer width="100%" height={260}><BarChart data={data} margin={{ top: 16, right: 4, left: -16, bottom: 4 }}>
-    <CartesianGrid stroke="var(--dashboard-chart-grid)" strokeDasharray="3 5" vertical={false}/><XAxis dataKey="name" axisLine={false} tickLine={false} interval={0} tick={{ fill: 'var(--dashboard-chart-label)', fontSize: 12 }}/><YAxis axisLine={false} tickLine={false} tick={{ fill: 'var(--dashboard-chart-muted)', fontSize: 12 }} tickFormatter={compactNumber}/>
-    <Tooltip formatter={(value) => [`${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Number(value))} ${unit}`, 'Thực hiện']}/><Bar dataKey="value" radius={[6, 6, 1, 1]} maxBarSize={48}>{data.map((item, index) => <Cell key={item.name} fill={barColors[index % barColors.length]}/>)}</Bar>
-  </BarChart></ResponsiveContainer></div>;
+  return <div className="executive-table-wrap"><table className="executive-table"><caption className="sr-only">Bảng dữ liệu so sánh chi tiết</caption><thead><tr>{columns.map(column => <th scope="col" key={column.key} className={column.align ?? 'left'}>{column.label}</th>)}</tr></thead><tbody>{rows.map(row => <tr key={row.id}>{columns.map(column => <td key={column.key} className={column.align ?? 'left'}>{column.render(row)}</td>)}</tr>)}</tbody></table>{!rows.length && <div className="executive-table-empty">{empty}</div>}</div>;
 }
 
 export type DashboardAlert = { id: string; severity: 'danger' | 'warning' | 'info' | 'success'; title: string; detail: string; meta?: string };
 export function AlertList({ items }: { items: DashboardAlert[] }) {
   const IconFor = ({ severity }: { severity: DashboardAlert['severity'] }) => severity === 'success' ? <CheckCircle2/> : severity === 'info' ? <CircleAlert/> : <TriangleAlert/>;
-  return <div className="executive-alerts">{items.map(item => <article key={item.id} className={item.severity}><i><IconFor severity={item.severity}/></i><div><b>{item.title}</b><span>{item.detail}</span>{item.meta && <small>{item.meta}</small>}</div></article>)}</div>;
+  return <div className="executive-alerts">{items.map(item => <article key={item.id} className={item.severity}><i aria-hidden="true"><IconFor severity={item.severity}/></i><div><b>{item.title}</b><span>{item.detail}</span>{item.meta && <small>{item.meta}</small>}</div></article>)}</div>;
 }
-
-function compactNumber(value: number) { const absolute = Math.abs(value); if (absolute >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}tr`; if (absolute >= 1_000) return `${(value / 1_000).toFixed(0)}k`; return new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 0 }).format(value); }

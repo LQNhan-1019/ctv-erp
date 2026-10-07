@@ -197,7 +197,7 @@ function DailyDialog({value,month,busy,readOnly,close,save,remove,downloadFile,d
     event.preventDefault();
     const data=new FormData(event.currentTarget);
     const files=Array.from((event.currentTarget.elements.namedItem('files') as HTMLInputElement).files??[]);
-    if(files.some(file=>file.size>10*1024*1024)){setFileError('Mỗi file minh chứng tối đa 10 MB.');return;}
+    if(files.some(file=>file.size>199*1024*1024)){setFileError('Mỗi file minh chứng phải dưới 200 MB; giới hạn thực tế do Quản lý hệ thống cấu hình.');return;}
     setFileError('');
     await save({workDate:date,quantity:Number(data.get('quantity')),progressPercent:data.get('progressPercent')?Number(data.get('progressPercent')):null,details:String(data.get('details'))||null,blockers:String(data.get('blockers'))||null,evidenceUrl:String(data.get('evidenceUrl'))||null},files);
   }
@@ -207,7 +207,7 @@ function DailyDialog({value,month,busy,readOnly,close,save,remove,downloadFile,d
     <label className="wide"><span>Kết quả/chi tiết đã làm</span><textarea name="details" disabled={readOnly} defaultValue={value.update?.details??''}/></label>
     <label className="wide"><span>Vướng mắc</span><textarea name="blockers" disabled={readOnly} defaultValue={value.update?.blockers??''}/></label>
     <label className="wide"><span>Link minh chứng (tùy chọn)</span><input name="evidenceUrl" type="url" disabled={readOnly} defaultValue={value.update?.evidenceUrl??''}/></label>
-    {!readOnly&&<label className="wide"><span>Thêm file minh chứng (mọi định dạng, tối đa 10 MB/file)</span><input name="files" type="file" multiple/>{fileError&&<small role="alert">{fileError}</small>}</label>}
+    {!readOnly&&<label className="wide"><span>Thêm file minh chứng (mọi định dạng, theo giới hạn hệ thống dưới 200 MB/file)</span><input name="files" type="file" multiple/>{fileError&&<small role="alert">{fileError}</small>}</label>}
     {value.update?.evidenceFiles?.length? <div className="wide"><strong>File đã lưu trên Google Drive</strong><div className="work-evidence-list">{value.update.evidenceFiles.map(file=><div key={file.id}><button type="button" onClick={()=>void downloadFile(value.update!.id,file.id,file.fileName)}>{file.fileName}</button><small>{number(file.fileSize/1024)} KB</small>{!readOnly&&<button type="button" className="danger" aria-label={`Xóa ${file.fileName}`} onClick={async ()=>{if(await appDialog.confirm(`Xóa file ${file.fileName}?`))void deleteFile(value.update!.id,file.id);}}><Trash2/></button>}</div>)}</div></div>:null}
   </div><footer>{remove&&<button type="button" className="nova-button danger" disabled={busy} onClick={()=>void remove()}><Trash2/>Xóa cập nhật</button>}<span/><button type="button" className="nova-button secondary" disabled={busy} onClick={close}>{readOnly?'Đóng':'Hủy'}</button>{!readOnly&&<button className="nova-button primary" disabled={busy}><Save/>{busy?'Đang lưu...':'Lưu ngày'}</button>}</footer></form></section></div>;
 }

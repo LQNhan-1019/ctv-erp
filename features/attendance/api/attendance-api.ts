@@ -1,5 +1,5 @@
 import type { ApiRequestOptions } from '@/lib/api/client';
-import type { AttendanceDashboard, AttendanceDeleteResult, AttendanceIdentifier, AttendanceImportPreview, AttendanceImportResult, AttendanceShift, AttendanceSource, DailyAttendance, DeviceEmployeePushResult, EmployeeOption, ExportTemplate, ScheduleRule, Timesheet, WorkbookMapping, WorkbookPreview } from '../types/attendance';
+import type { AbsenceEvidenceFile, AttendanceDashboard, AttendanceDeleteResult, AttendanceIdentifier, AttendanceImportPreview, AttendanceImportResult, AttendanceShift, AttendanceSource, DailyAttendance, DeviceEmployeePushResult, EmployeeOption, ExportTemplate, ScheduleRule, Timesheet, WorkbookMapping, WorkbookPreview } from '../types/attendance';
 type Request = <T>(path: string, options?: ApiRequestOptions) => Promise<T>;
 export const getAttendanceDashboard = (request: Request, month: string) => request<AttendanceDashboard>(`/api/hr/attendance/dashboard?month=${month}`);
 export const getTimesheet = (request: Request, month: string, businessUnitId = '') => request<Timesheet>(`/api/hr/attendance/timesheet?month=${month}${businessUnitId ? `&businessUnitId=${encodeURIComponent(businessUnitId)}` : ''}`);
@@ -26,5 +26,9 @@ export const saveAttendanceIdentifier = (request: Request, body: { connectionId:
 export const deleteAttendanceIdentifier = (request: Request, id: string) => request<void>(`/api/hr/attendance/employee-identifiers/${id}`, { method: 'DELETE' });
 export const pushEmployeesToDevice = (request: Request, connectionId: string, employeeIds: string[]) => request<DeviceEmployeePushResult>('/api/hr/attendance/device-management/employees/push', { method: 'POST', body: { connectionId, employeeIds } });
 export const adjustAttendance = (request: Request, recordId: string, body: unknown) => request<DailyAttendance>(`/api/hr/attendance/records/${recordId}`, { method: 'PATCH', body });
+export const decideAttendanceAbsence = (request: Request, recordId: string, decision: 'AUTHORIZED' | 'UNAUTHORIZED', reason: string | null) => request<DailyAttendance>(`/api/hr/attendance/records/${recordId}/absence`, { method: 'PUT', body: { decision, reason } });
+export const listAttendanceAbsenceFiles = (request: Request, recordId: string) => request<AbsenceEvidenceFile[]>(`/api/hr/attendance/records/${recordId}/absence/files`);
+export const uploadAttendanceAbsenceFile = (request: Request, recordId: string, file: File) => { const body = new FormData(); body.set('file', file); return request<AbsenceEvidenceFile>(`/api/hr/attendance/records/${recordId}/absence/files`, { method: 'POST', body }); };
+export const deleteAttendanceAbsenceFile = (request: Request, recordId: string, fileId: string) => request<void>(`/api/hr/attendance/records/${recordId}/absence/files/${fileId}`, { method: 'DELETE' });
 export const previewAttendanceImport = (request: Request, body: unknown) => request<AttendanceImportPreview>('/api/hr/attendance/import/preview', { method: 'POST', body });
 export const importAttendanceWorkbook = (request: Request, body: unknown) => request<AttendanceImportResult>('/api/hr/attendance/import', { method: 'POST', body });

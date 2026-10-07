@@ -7,10 +7,29 @@
   --color-border: #e8eaef;
   --color-border-soft: #eef0f4;
   --color-ink: #14161b;
-  --color-ink-soft: #6b7280;
-  --color-ink-faint: #8a93a3;
+  --color-ink-soft: #4b5563;
+  --color-ink-faint: #5f6878;
   --color-accent: #2f6fee;
   --color-accent-ink: #ffffff;
+  --color-focus: #1d4ed8;
+  --color-danger: #b42318;
+  --color-success: #087f5b;
+  --color-warning: #9a6700;
+  --color-info: #175cd3;
+  --shadow-sm: 0 1px 2px rgb(15 23 42 / 6%);
+  --shadow-md: 0 8px 24px rgb(15 23 42 / 10%);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --text-caption: 0.75rem;
+  --text-label: 0.8125rem;
+  --text-body: 0.9375rem;
+  --text-title: 1.125rem;
   --ink: #16211f;
   --muted: #586763;
   --line: #e6ebe8;
@@ -28,8 +47,13 @@ html.dark {
   --color-border: #2b2e38;
   --color-border-soft: #262933;
   --color-ink: #f3f4f6;
-  --color-ink-soft: #a6acb8;
-  --color-ink-faint: #7f8795;
+  --color-ink-soft: #c1c7d0;
+  --color-ink-faint: #aab2bf;
+  --color-focus: #7aa2ff;
+  --color-danger: #ffb4ab;
+  --color-success: #75e0ba;
+  --color-warning: #f4c95d;
+  --color-info: #9ec5ff;
   color-scheme: dark;
 }
 
@@ -41,14 +65,46 @@ body {
   background: var(--color-page);
   color: var(--color-ink);
   font-family: var(--font-geist-sans), 'Segoe UI', Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
+  font-size: var(--text-body);
+  line-height: 1.55;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
 }
 button, input, select, textarea { font: inherit; }
-button, a { -webkit-tap-highlight-color: transparent; }
+button, a { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 ::selection { background: var(--color-accent); color: var(--color-accent-ink); }
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 2000;
+  transform: translateY(-150%);
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: var(--color-accent-ink);
+  font-weight: 750;
+  text-decoration: none;
+  box-shadow: var(--shadow-md);
+}
+.skip-link:focus { transform: translateY(0); }
+
+@media (max-width: 767px) {
+  body { font-size: 16px; }
+}
 
 /* BEGIN LEGACY UI COMPATIBILITY */
 /*

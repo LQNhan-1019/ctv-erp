@@ -2,7 +2,7 @@
 
 import { appDialog } from '@/lib/ui/app-dialog';
 
-import { Download, Save, Trash2, TriangleAlert, Upload, X } from 'lucide-react';
+import { ArrowLeft, Download, FileSpreadsheet, Save, Settings2, Trash2, TriangleAlert, Upload, X } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { ApiClientError, type ApiRequestOptions } from '@/lib/api/client';
 import { createExportTemplate, deleteExportTemplate, getExportTemplatePreview, listExportTemplates, updateExportTemplate } from '../api/attendance-api';
@@ -10,23 +10,24 @@ import type { EmployeeOption, ExportTemplate, WorkbookMapping, WorkbookPreview }
 
 type Request = <T>(path: string, options?: ApiRequestOptions) => Promise<T>;
 const defaultMapping: WorkbookMapping = {
-  sheetName: 'PHCNS', companyNameCell: 'A1', taxCodeCell: 'A2', departmentNameCell: '', monthCell: 'C6', yearCell: 'C7',
+  sheetName: 'PHCNS', companyNameCell: 'A1', taxCodeCell: 'A2', departmentNameCell: 'A5', monthCell: 'C6', yearCell: 'C7',
   employeeNumberCell: 'A11', employeeCodeCell: 'B11', employeeNameCell: 'C11', jobTitleCell: 'D11', dayOneCell: 'E11',
   actualWorkDaysCell: 'AJ11', paidLeaveDaysCell: 'AK11', holidayDaysCell: 'AL11', holidayWorkDaysCell: 'AM11',
-  unpaidLeaveDaysCell: 'AN11', maternityDaysCell: 'AO11', weeklyOffWorkDaysCell: 'AP11', payrollDaysCell: 'AQ11',
+  unpaidLeaveDaysCell: 'AN11', maternityDaysCell: '', weeklyOffWorkDaysCell: 'AO11', payrollDaysCell: '',
 };
 const fields: Array<[keyof WorkbookMapping, string]> = [
   ['companyNameCell', 'Tên công ty'], ['taxCodeCell', 'Mã số thuế'], ['departmentNameCell', 'Tên phòng ban'], ['monthCell', 'Tháng'], ['yearCell', 'Năm'],
   ['employeeNumberCell', 'Dòng nhân viên / STT'], ['employeeCodeCell', 'Mã nhân viên'], ['employeeNameCell', 'Họ và tên'],
   ['jobTitleCell', 'Chức vụ'], ['dayOneCell', 'Ngày 1 (31 ngày chạy ngang)'], ['actualWorkDaysCell', 'Công thực tế'],
   ['paidLeaveDaysCell', 'Phép'], ['holidayDaysCell', 'Lễ'], ['holidayWorkDaysCell', 'Làm lễ'], ['unpaidLeaveDaysCell', 'Không lương'],
-  ['maternityDaysCell', 'Thai sản'], ['weeklyOffWorkDaysCell', 'Làm ngày nghỉ'], ['payrollDaysCell', 'Tổng công tính lương'],
+  ['maternityDaysCell', 'Thai sản'], ['weeklyOffWorkDaysCell', 'Làm ngày nghỉ'],
 ];
 function columnName(index: number) { let value = index + 1; let text = ''; while (value > 0) { value--; text = String.fromCharCode(65 + value % 26) + text; value = Math.floor(value / 26); } return text; }
 function fileBase64(file: File) { return new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1] ?? ''); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); }); }
 
 export default function AttendanceExportDialog({ open, month, request, employees, busy, close, execute, onExport }: { open: boolean; month: string; request: Request; employees: EmployeeOption[]; busy: string; close: () => void; execute: (label: string, action: () => Promise<unknown>) => Promise<void>; onExport: (businessUnitId: string, templateId: string) => Promise<void> }) {
   const [mode, setMode] = useState<'STANDARD' | 'PERSONAL'>('STANDARD');
+  const [dialogView, setDialogView] = useState<'EXPORT' | 'TEMPLATE'>('EXPORT');
   const [businessUnitId, setBusinessUnitId] = useState('');
   const [templates, setTemplates] = useState<ExportTemplate[]>([]);
   const [templateId, setTemplateId] = useState('');
@@ -49,7 +50,7 @@ export default function AttendanceExportDialog({ open, month, request, employees
         : cause instanceof Error ? cause.message : 'Không tải được danh sách mẫu Excel.');
     }
   }
-  useEffect(() => { const timer = window.setTimeout(() => { if (open && mode === 'PERSONAL') void refresh(); }, 0); return () => window.clearTimeout(timer); }, [open, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const timer = window.setTimeout(() => { if (open && (mode === 'PERSONAL' || dialogView === 'TEMPLATE')) void refresh(); }, 0); return () => window.clearTimeout(timer); }, [dialogView, open, mode]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const timer = window.setTimeout(() => { if (!templateId) { setPreview(null); return; } const selected = templates.find((item) => item.id === templateId); if (selected) setMapping(selected.mapping); void getExportTemplatePreview(request, templateId).then((value) => { setPreview(value); setLoadError(''); }).catch((cause) => { setPreview(null); setLoadError(cause instanceof Error ? cause.message : 'Không đọc được mẫu Excel.'); }); }, 0); return () => window.clearTimeout(timer); }, [request, templateId, templates]);
 
   async function upload(event: FormEvent<HTMLFormElement>) {
@@ -67,18 +68,36 @@ export default function AttendanceExportDialog({ open, month, request, employees
     await refresh(); setPreview(await getExportTemplatePreview(request, selectedTemplate.id));
   }
 
+  function closeAll() {
+    setDialogView('EXPORT');
+    close();
+  }
+
+  function openTemplateManager() {
+    setMode('PERSONAL');
+    setDialogView('TEMPLATE');
+  }
+
   if (!open) return null;
-  return <div className="nova-overlay"><section className="nova-dialog attendance-export-dialog">
-    <header><div><p>XUẤT BẢNG CÔNG</p><h2>Tháng {month.slice(5)}/{month.slice(0, 4)}</h2><span>Chọn phòng ban và biểu mẫu Excel cần sử dụng.</span></div><button onClick={close}><X /></button></header>
+  if (dialogView === 'TEMPLATE') return <div className="nova-overlay"><section className="nova-dialog attendance-template-dialog" role="dialog" aria-modal="true" aria-labelledby="attendance-template-title">
+    <header><div><p>ĐIỀU CHỈNH MẪU EXCEL</p><h2 id="attendance-template-title">Mẫu bảng chấm công cá nhân</h2><span>Tải mẫu, chọn sheet và gắn từng trường dữ liệu vào đúng ô Excel.</span></div><button type="button" aria-label="Đóng" onClick={closeAll}><X /></button></header>
+    <div className="nova-dialog-body">
+      {loadError && <div className="performance-error"><TriangleAlert />{loadError}</div>}
+      <div className="attendance-template-toolbar"><label><span>Mẫu đã lưu</span><select value={templateId} onChange={(event) => setTemplateId(event.target.value)}><option value="">Chọn mẫu để điều chỉnh</option>{templates.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{selectedTemplate && <button type="button" className="nova-button danger" onClick={async () => { if (await appDialog.confirm('Xóa mẫu Excel cá nhân này?')) void execute('template-delete', () => deleteExportTemplate(request, selectedTemplate.id)).then(async () => { setTemplateId(''); await refresh(); }); }}><Trash2 />Xóa mẫu</button>}</div>
+      <details className="attendance-template-upload"><summary><Upload />Tải mẫu .xlsx mới</summary><form onSubmit={(event) => { void upload(event).catch((cause) => void appDialog.alert(cause instanceof Error ? cause.message : 'Không tải được mẫu')); }}><div className="nova-form-grid three"><label><span>Tên mẫu</span><input name="name" required /></label><label><span>Tên sheet cần điền</span><input name="sheetName" defaultValue="PHCNS" required /></label><label><span>File .xlsx (theo giới hạn upload hệ thống)</span><input name="file" type="file" accept=".xlsx" required /></label></div><button className="nova-button secondary" disabled={busy === 'template-upload'}><Upload />Tải và lưu mẫu</button></form></details>
+      {preview ? <section className="attendance-template-editor"><header><div><h3>Ánh xạ dữ liệu trên sheet {preview.sheetName}</h3><p>Chọn một trường rồi bấm vào ô tương ứng. Với trường nhân viên, chọn ô ở dòng nhân viên đầu tiên.</p></div><button type="button" className="nova-button primary" onClick={() => void saveMapping()} disabled={busy === 'template-map'}><Save />Lưu ánh xạ</button></header><div className="attendance-mapping-fields"><label><span>Trường đang gắn</span><select value={activeField} onChange={(event) => setActiveField(event.target.value as keyof WorkbookMapping)}>{fields.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>{fields.map(([key, label]) => <button type="button" key={key} className={activeField === key ? 'active' : ''} onClick={() => setActiveField(key)}><span>{label}</span><b>{mapping[key]}</b></button>)}</div><div className="attendance-workbook-grid"><table><thead><tr><th></th>{Array.from({ length: preview.columnCount }, (_, index) => <th key={index}>{columnName(index)}</th>)}</tr></thead><tbody>{preview.cells.map((row, rowIndex) => <tr key={rowIndex}><th>{rowIndex + 1}</th>{row.map((value, columnIndex) => { const address = `${columnName(columnIndex)}${rowIndex + 1}`; const mapped = Object.entries(mapping).some(([key, cell]) => key !== 'sheetName' && cell === address); return <td key={columnIndex}><button type="button" className={mapped ? 'mapped' : ''} title={value || address} onClick={() => setMapping((current) => ({ ...current, [activeField]: address }))}>{value || ' '}</button></td>; })}</tr>)}</tbody></table></div></section> : <div className="attendance-template-empty"><FileSpreadsheet /><div><b>Chọn một mẫu Excel đã lưu</b><span>Hoặc mở mục tải mẫu mới ở phía trên để bắt đầu ánh xạ.</span></div></div>}
+    </div>
+    <footer className="attendance-dialog-footer"><button type="button" className="nova-button secondary" onClick={() => setDialogView('EXPORT')}><ArrowLeft />Quay lại xuất file</button></footer>
+  </section></div>;
+
+  return <div className="nova-overlay"><section className="nova-dialog attendance-export-dialog" role="dialog" aria-modal="true" aria-labelledby="attendance-export-title">
+    <header><div><p>XUẤT BẢNG CÔNG</p><h2 id="attendance-export-title">Tháng {month.slice(5)}/{month.slice(0, 4)}</h2><span>Chọn phòng ban và biểu mẫu Excel cần sử dụng.</span></div><button type="button" aria-label="Đóng" onClick={closeAll}><X /></button></header>
     <div className="nova-dialog-body">
       {loadError && <div className="performance-error"><TriangleAlert />{loadError}</div>}
       <div className="attendance-export-options"><label><span>Phòng ban</span><select value={businessUnitId} onChange={(event) => setBusinessUnitId(event.target.value)}><option value="">Tất cả phòng ban</option>{departments.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label><label><span>Loại biểu mẫu</span><select value={mode} onChange={(event) => setMode(event.target.value as typeof mode)}><option value="STANDARD">Mẫu chuẩn của hệ thống</option><option value="PERSONAL">Mẫu Excel cá nhân</option></select></label></div>
-      {mode === 'PERSONAL' && <>
-        <div className="attendance-template-toolbar"><label><span>Mẫu đã lưu</span><select value={templateId} onChange={(event) => setTemplateId(event.target.value)}><option value="">Chọn mẫu</option>{templates.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>{selectedTemplate && <button type="button" className="nova-button danger" onClick={async () => { if (await appDialog.confirm('Xóa mẫu Excel cá nhân này?')) void execute('template-delete', () => deleteExportTemplate(request, selectedTemplate.id)).then(async () => { setTemplateId(''); await refresh(); }); }}><Trash2 />Xóa mẫu</button>}</div>
-        <details className="attendance-template-upload"><summary>Tải mẫu .xlsx mới</summary><form onSubmit={(event) => { void upload(event).catch((cause) => void appDialog.alert(cause instanceof Error ? cause.message : 'Không tải được mẫu')); }}><div className="nova-form-grid three"><label><span>Tên mẫu</span><input name="name" required /></label><label><span>Tên sheet cần điền</span><input name="sheetName" defaultValue="PHCNS" required /></label><label><span>File .xlsx (tối đa 10 MB)</span><input name="file" type="file" accept=".xlsx" required /></label></div><button className="nova-button secondary" disabled={busy === 'template-upload'}><Upload />Tải và lưu mẫu</button></form></details>
-        {preview && <section className="attendance-template-editor"><header><div><h3>Ánh xạ dữ liệu trên sheet {preview.sheetName}</h3><p>Chọn một trường rồi bấm vào ô tương ứng. Với trường nhân viên, chọn ô ở dòng nhân viên đầu tiên.</p></div><button type="button" className="nova-button primary" onClick={() => void saveMapping()} disabled={busy === 'template-map'}><Save />Lưu ánh xạ</button></header><div className="attendance-mapping-fields"><label><span>Trường đang gắn</span><select value={activeField} onChange={(event) => setActiveField(event.target.value as keyof WorkbookMapping)}>{fields.map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>{fields.map(([key, label]) => <button type="button" key={key} className={activeField === key ? 'active' : ''} onClick={() => setActiveField(key)}><span>{label}</span><b>{mapping[key]}</b></button>)}</div><div className="attendance-workbook-grid"><table><thead><tr><th></th>{Array.from({ length: preview.columnCount }, (_, index) => <th key={index}>{columnName(index)}</th>)}</tr></thead><tbody>{preview.cells.map((row, rowIndex) => <tr key={rowIndex}><th>{rowIndex + 1}</th>{row.map((value, columnIndex) => { const address = `${columnName(columnIndex)}${rowIndex + 1}`; const mapped = Object.entries(mapping).some(([key, cell]) => key !== 'sheetName' && cell === address); return <td key={columnIndex}><button type="button" className={mapped ? 'mapped' : ''} title={value || address} onClick={() => setMapping((current) => ({ ...current, [activeField]: address }))}>{value || ' '}</button></td>; })}</tr>)}</tbody></table></div></section>}
-      </>}
+      {mode === 'PERSONAL' && <div className="attendance-export-template-choice"><label><span>Mẫu Excel</span><select value={templateId} onChange={(event) => setTemplateId(event.target.value)}><option value="">Chọn mẫu đã lưu</option>{templates.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><button type="button" className="nova-button secondary" onClick={openTemplateManager}><Settings2 />Điều chỉnh mẫu</button></div>}
+      <button type="button" className="attendance-template-manage" onClick={openTemplateManager}><FileSpreadsheet /><span><b>Quản lý mẫu Excel cá nhân</b><small>Tải mẫu mới hoặc điều chỉnh vị trí các trường dữ liệu trong một cửa sổ riêng.</small></span><Settings2 /></button>
     </div>
-    <footer><button className="nova-button secondary" onClick={close}>Hủy</button><button className="nova-button primary" disabled={busy === 'export' || (mode === 'PERSONAL' && !templateId)} onClick={() => void onExport(businessUnitId, mode === 'PERSONAL' ? templateId : '')}><Download />Xuất file Excel</button></footer>
+    <footer className="attendance-dialog-footer"><button type="button" className="nova-button secondary" onClick={closeAll}>Hủy</button><button type="button" className="nova-button primary" disabled={busy === 'export' || (mode === 'PERSONAL' && !templateId)} onClick={() => void onExport(businessUnitId, mode === 'PERSONAL' ? templateId : '')}><Download />Xuất file Excel</button></footer>
   </section></div>;
 }

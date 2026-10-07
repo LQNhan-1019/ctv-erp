@@ -2,7 +2,7 @@
 
 import { appDialog } from '@/lib/ui/app-dialog';
 
-import { Check, Clock3, Download, RefreshCw, Save, ShieldCheck, Trash2, TriangleAlert, Upload, UserRound, Users, X, type LucideIcon } from 'lucide-react';
+import { Check, Clock3, Download, FileText, RefreshCw, Save, ShieldCheck, Trash2, TriangleAlert, Upload, UserRound, Users, X, type LucideIcon } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import type { ApiRequestOptions } from '@/lib/api/client';
 import { useAuth } from '@/features/auth/context/auth-context';
@@ -11,15 +11,16 @@ import ShiftAssignmentPanel from './shift-assignment-panel';
 import AttendanceExportDialog from './attendance-export-dialog';
 import AttendanceImportDialog from './attendance-import-dialog';
 import {
-  adjustAttendance, getAttendanceDashboard,
+  adjustAttendance, decideAttendanceAbsence, deleteAttendanceAbsenceFile, getAttendanceDashboard,
   deleteAttendanceData, deleteAttendanceIdentifier, getTimesheet, listAttendanceIdentifiers, listEmployees, listShifts, listSources, saveAttendanceIdentifier, syncAmis,
+  listAttendanceAbsenceFiles, uploadAttendanceAbsenceFile,
 } from '../api/attendance-api';
-import type { AttendanceDashboard, AttendanceIdentifier, AttendanceImportResult, AttendanceShift, AttendanceSource, DailyAttendance, EmployeeOption, Timesheet } from '../types/attendance';
+import type { AbsenceEvidenceFile, AttendanceDashboard, AttendanceIdentifier, AttendanceImportResult, AttendanceShift, AttendanceSource, DailyAttendance, EmployeeOption, Timesheet } from '../types/attendance';
 type Request = <T>(path: string, options?: ApiRequestOptions) => Promise<T>;
 
 type Tab = 'overview' | 'timesheet' | 'shiftDefinitions' | 'scheduling' | 'sync';
 const statusLabels: Record<string, string> = {
-  PRESENT: 'Đủ công', LATE: 'Đi trễ', ABSENT: 'Vắng', MISSING_CHECK_IN: 'Quên check-in',
+  PRESENT: 'Đủ công', LATE: 'Đi trễ', ABSENT: 'Vắng không phép', AUTHORIZED_LEAVE: 'Nghỉ có phép', MISSING_CHECK_IN: 'Quên check-in',
   MISSING_CHECK_OUT: 'Quên check-out', SCHEDULED: 'Đã xếp ca', OFF_DAY: 'Nghỉ tuần',
   HOLIDAY: 'Ngày lễ', UNASSIGNED: 'Chưa xếp ca',
 };
@@ -83,13 +84,6 @@ export default function AttendanceManagementPage() {
     finally { setBusy(''); }
   }
 
-  async function submitAdjustment(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); if (!editingDay) return; const data = new FormData(event.currentTarget);
-    await execute('adjust', () => adjustAttendance(request, editingDay.recordId, {
-      checkIn: data.get('checkIn') || null, checkOut: data.get('checkOut') || null, reason: data.get('reason'),
-    })); setEditingDay(null);
-  }
-
   async function exportWorkbook(businessUnitId = '', templateId = '') {
     setBusy('export');
     try {
@@ -98,7 +92,13 @@ export default function AttendanceManagementPage() {
       if (templateId) params.set('templateId', templateId);
       const blob = await download(`/api/hr/attendance/export?${params.toString()}`);
       const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
-      anchor.href = url; anchor.download = `Bang-cham-cong-${month}.xlsx`; anchor.click(); URL.revokeObjectURL(url);
+      const department = businessUnitId
+        ? departments.find(([id]) => id === businessUnitId)?.[1] ?? 'phong-ban'
+        : 'tong-hop';
+      const departmentSlug = department.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      const [year, selectedMonth] = month.split('-');
+      anchor.href = url; anchor.download = `bang-cham-cong-${departmentSlug}-${selectedMonth}-${year}.xlsx`; anchor.click(); URL.revokeObjectURL(url);
       setExportOpen(false);
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể xuất bảng công'); }
     finally { setBusy(''); }
@@ -132,10 +132,91 @@ export default function AttendanceManagementPage() {
     {!loading && tab === 'scheduling' && (canManage ? <ShiftAssignmentPanel request={request} shifts={shifts} employees={employees} busy={busy} execute={execute} /> : <section className="attendance-panel"><p>Bạn không có quyền phân ca.</p></section>)}
 
     {!loading && tab === 'sync' && <SyncPanel request={request} sources={sources} employees={employees} canSync={canSync} busy={busy} execute={execute} />}
-    {editingDay && <div className="nova-overlay"><section className="nova-dialog attendance-adjust"><header><div><p>HIỆU CHỈNH CHẤM CÔNG</p><h2>{editingDay.workDate}</h2><span>Mọi thay đổi đều được lưu lịch sử và nhật ký hoạt động.</span></div><button onClick={() => setEditingDay(null)}><X /></button></header><form onSubmit={submitAdjustment}><div className="nova-dialog-body"><label><span>Giờ vào</span><input name="checkIn" type="datetime-local" defaultValue={localInput(editingDay.checkIn)} /></label><label><span>Giờ ra</span><input name="checkOut" type="datetime-local" defaultValue={localInput(editingDay.checkOut)} /></label><label><span>Lý do</span><textarea className="nova-textarea" name="reason" required maxLength={500} /></label></div><footer><button type="button" className="nova-button secondary" onClick={() => setEditingDay(null)}>Hủy</button><button className="nova-button primary"><Save />Lưu hiệu chỉnh</button></footer></form></section></div>}
+    {editingDay && <AttendanceDayDialog day={editingDay} request={request} download={download} close={() => setEditingDay(null)} saved={async () => { setMessage('Đã cập nhật ngày công.'); await load(); }} />}
     <AttendanceExportDialog open={exportOpen} month={month} request={request} employees={employees} busy={busy} close={() => setExportOpen(false)} execute={execute} onExport={exportWorkbook} />
     <AttendanceImportDialog open={importOpen} request={request} download={download} sources={sources} close={() => setImportOpen(false)} onImported={imported} />
   </div>;
+}
+
+function AttendanceDayDialog({ day, request, download, close, saved }: {
+  day: DailyAttendance;
+  request: Request;
+  download: (path: string) => Promise<Blob>;
+  close: () => void;
+  saved: () => Promise<void>;
+}) {
+  const absenceMode = ['ABSENT', 'AUTHORIZED_LEAVE', 'MISSING_CHECK_IN', 'MISSING_CHECK_OUT'].includes(day.status);
+  const [decision, setDecision] = useState<'AUTHORIZED' | 'UNAUTHORIZED'>(day.absenceType === 'AUTHORIZED' ? 'AUTHORIZED' : 'UNAUTHORIZED');
+  const [files, setFiles] = useState<AbsenceEvidenceFile[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const refreshFiles = useCallback(async () => {
+    if (!absenceMode) return;
+    try { setFiles(await listAttendanceAbsenceFiles(request, day.recordId)); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Không đọc được file minh chứng'); }
+  }, [absenceMode, day.recordId, request]);
+
+  useEffect(() => { const timer = window.setTimeout(() => void refreshFiles(), 0); return () => window.clearTimeout(timer); }, [refreshFiles]);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    setSaving(true); setError('');
+    try {
+      if (absenceMode) {
+        await decideAttendanceAbsence(request, day.recordId, decision, String(data.get('reason') ?? '').trim() || null);
+        const selected = data.get('evidence');
+        if (decision === 'AUTHORIZED' && selected instanceof File && selected.size > 0) {
+          await uploadAttendanceAbsenceFile(request, day.recordId, selected);
+        }
+      } else {
+        await adjustAttendance(request, day.recordId, {
+          checkIn: data.get('checkIn') || null,
+          checkOut: data.get('checkOut') || null,
+          reason: data.get('reason'),
+        });
+      }
+      await saved();
+      close();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Không thể cập nhật ngày công');
+    } finally { setSaving(false); }
+  }
+
+  async function openFile(file: AbsenceEvidenceFile) {
+    setError('');
+    try {
+      const blob = await download(`/api/hr/attendance/records/${day.recordId}/absence/files/${file.id}/content`);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url; anchor.target = '_blank'; anchor.rel = 'noopener'; anchor.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không mở được file minh chứng'); }
+  }
+
+  async function removeFile(file: AbsenceEvidenceFile) {
+    if (!await appDialog.confirm(`Xóa file “${file.fileName}”?`)) return;
+    setError('');
+    try { await deleteAttendanceAbsenceFile(request, day.recordId, file.id); await refreshFiles(); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : 'Không xóa được file minh chứng'); }
+  }
+
+  const missingDetail = day.checkIn == null && day.checkOut != null
+    ? 'Thiếu giờ chấm vào' : day.checkIn != null && day.checkOut == null
+      ? 'Thiếu giờ chấm ra' : 'Không có đủ cặp giờ vào/ra';
+
+  return <div className="nova-overlay"><section className="nova-dialog attendance-adjust"><header><div><p>{absenceMode ? 'XÁC NHẬN VẮNG / NGHỈ PHÉP' : 'HIỆU CHỈNH CHẤM CÔNG'}</p><h2>{day.workDate}</h2><span>{absenceMode ? `${missingDetail}. Hệ thống mặc định V · 0 công.` : 'Mọi thay đổi đều được lưu lịch sử và nhật ký hoạt động.'}</span></div><button type="button" onClick={close}><X /></button></header><form onSubmit={submit}><div className="nova-dialog-body">
+    {error && <div className="performance-error attendance-adjust-error"><TriangleAlert />{error}</div>}
+    {absenceMode ? <>
+      <fieldset className="attendance-absence-options"><legend>Hình thức vắng</legend><label className={decision === 'AUTHORIZED' ? 'selected authorized' : ''}><input type="radio" name="decision" value="AUTHORIZED" checked={decision === 'AUTHORIZED'} onChange={() => setDecision('AUTHORIZED')} /><span><b>Có phép</b><small>Tính P · 1 ngày công</small></span></label><label className={decision === 'UNAUTHORIZED' ? 'selected unauthorized' : ''}><input type="radio" name="decision" value="UNAUTHORIZED" checked={decision === 'UNAUTHORIZED'} onChange={() => setDecision('UNAUTHORIZED')} /><span><b>Không phép</b><small>Tính V · 0 ngày công</small></span></label></fieldset>
+      <label className="attendance-adjust-wide"><span>Lý do / ghi chú</span><textarea className="nova-textarea" name="reason" maxLength={500} defaultValue={day.absenceReason ?? ''} placeholder="Ví dụ: Nghỉ bệnh, đã báo trưởng phòng…" /></label>
+      {decision === 'AUTHORIZED' && <label className="attendance-adjust-wide attendance-evidence-input"><span>Đơn nghỉ phép hoặc ảnh tin nhắn</span><input name="evidence" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx" /><small>Hỗ trợ ảnh, PDF, Word; dung lượng theo giới hạn upload trong Cài đặt hệ thống.</small></label>}
+      {!!files.length && <div className="attendance-evidence-list"><strong>Minh chứng đã lưu</strong>{files.map(file => <article key={file.id}><FileText /><button type="button" className="attendance-evidence-name" onClick={() => void openFile(file)}>{file.fileName}</button><small>{Math.max(1, Math.round(file.fileSize / 1024))} KB</small><button type="button" className="attendance-evidence-delete" aria-label={`Xóa ${file.fileName}`} onClick={() => void removeFile(file)}><Trash2 /></button></article>)}</div>}
+    </> : <>
+      <label><span>Giờ vào</span><input name="checkIn" type="datetime-local" defaultValue={localInput(day.checkIn)} /></label><label><span>Giờ ra</span><input name="checkOut" type="datetime-local" defaultValue={localInput(day.checkOut)} /></label><label className="attendance-adjust-wide"><span>Lý do</span><textarea className="nova-textarea" name="reason" required maxLength={500} /></label>
+    </>}
+  </div><footer><button type="button" className="nova-button secondary" disabled={saving} onClick={close}>Hủy</button><button className="nova-button primary" disabled={saving}><Save />{saving ? 'Đang lưu…' : absenceMode ? 'Lưu xác nhận' : 'Lưu hiệu chỉnh'}</button></footer></form></section></div>;
 }
 
 function Overview({ data }: { data: AttendanceDashboard }) {

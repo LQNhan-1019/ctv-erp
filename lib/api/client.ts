@@ -23,19 +23,14 @@ export class ApiClientError extends Error {
   }
 }
 
-let csrfPromise: Promise<string | null> | null = null;
-const XSRF_COOKIE_NAME = 'XSRF-TOKEN';
+type CsrfResponse = {
+  token?: unknown;
+  headerName?: unknown;
+};
 
-function readCookie(name: string) {
-  if (typeof document === 'undefined') return null;
-  const prefix = `${encodeURIComponent(name)}=`;
-  const value = document.cookie
-    .split(';')
-    .map((part) => part.trim())
-    .find((part) => part.startsWith(prefix))
-    ?.slice(prefix.length);
-  return value ? decodeURIComponent(value) : null;
-}
+let csrfToken: string | null = null;
+let csrfHeaderName = 'X-XSRF-TOKEN';
+let csrfPromise: Promise<string> | null = null;
 
 export async function initializeCsrf() {
   const response = await fetch(`${env.apiBaseUrl}/api/auth/csrf`, {
@@ -45,24 +40,23 @@ export async function initializeCsrf() {
     headers: { Accept: 'application/json' },
   });
   if (!response.ok) throw new Error('Không khởi tạo được CSRF token');
-  return readCookie(XSRF_COOKIE_NAME);
+  const payload = await response.json() as CsrfResponse;
+  if (typeof payload.token !== 'string' || !payload.token) {
+    throw new Error('Backend không trả về CSRF token hợp lệ');
+  }
+  csrfToken = payload.token;
+  if (typeof payload.headerName === 'string' && payload.headerName) {
+    csrfHeaderName = payload.headerName;
+  }
+  return csrfToken;
 }
 
 async function requireCsrfToken() {
-  let token = readCookie(XSRF_COOKIE_NAME);
-  if (!token) {
+  if (!csrfToken) {
     csrfPromise ??= initializeCsrf().finally(() => { csrfPromise = null; });
-    token = await csrfPromise;
+    await csrfPromise;
   }
-  if (!token) {
-    throw new ApiClientError({
-      status: 403,
-      error: 'Forbidden',
-      code: 'CSRF_TOKEN_MISSING',
-      message: 'Không đọc được cookie XSRF-TOKEN. Frontend và backend cần dùng cùng site hoặc reverse proxy để trình duyệt cho phép đọc cookie.',
-    });
-  }
-  return token;
+  return csrfToken!;
 }
 
 async function parseResponse(response: Response) {
@@ -82,7 +76,8 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   if (options.body !== undefined && !isFormData) headers.set('Content-Type', 'application/json');
   if (options.accessToken) headers.set('Authorization', `Bearer ${options.accessToken}`);
   if (MUTATING_METHODS.has(method) && !options.skipCsrf) {
-    headers.set('X-XSRF-TOKEN', await requireCsrfToken());
+    const token = await requireCsrfToken();
+    headers.set(csrfHeaderName, token);
   }
 
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
@@ -97,6 +92,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   const errorPayload = (payload ?? {}) as Partial<ApiErrorPayload>;
   if (response.status === 403 && errorPayload.code === 'CSRF_VALIDATION_FAILED'
       && csrfRetry && MUTATING_METHODS.has(method) && !options.skipCsrf) {
+    csrfToken = null;
     await initializeCsrf();
     return apiRequest<T>(path, options, false);
   }

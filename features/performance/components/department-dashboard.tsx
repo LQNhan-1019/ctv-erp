@@ -10,6 +10,7 @@ import type { DashboardData, DashboardMetric, MeasurementUnit } from '../types/p
 import { ComparisonBars, ComparisonTable, MetricCard, ProgressDonut, TrendChart, type TableColumn } from './dashboard-widgets';
 import { DashboardCanvas, useDashboardLayout } from './dashboard-layout-runtime';
 import type { DashboardCode, DashboardWidgetLayout } from '@/features/settings/types/dashboard-layout';
+import DashboardPeriodPicker, { type DashboardPeriodType } from '@/components/ui/dashboard-period-picker';
 
 type DepartmentDashboardKind = 'sales' | 'accounting' | 'hr-admin';
 type Row = { id: string; name: string; primary: number; secondary: number; progress: number | null };
@@ -27,15 +28,16 @@ function Progress({ value }: { value: number | null }) { return <div className="
 
 export default function DepartmentDashboard({ kind }: { kind: DepartmentDashboardKind }) {
   const definition = definitions[kind]; const { request } = useAuth();
-  const [month, setMonth] = useState(currentMonth);
+  const [periodType, setPeriodType] = useState<DashboardPeriodType>('MONTH');
+  const [period, setPeriod] = useState(currentMonth);
   const layout = useDashboardLayout(request, definition.code, definition.defaults);
-  const { data, error, loading, refresh } = useApiResource<DashboardData>({ key: `department-dashboard:${kind}:${month}`, load: () => getDepartmentDashboard(request, kind, month) });
+  const { data, error, loading, refresh } = useApiResource<DashboardData>({ key: `department-dashboard:${kind}:${periodType}:${period}`, load: () => getDepartmentDashboard(request, kind, periodType, period) });
   const metrics = useMemo(() => data?.metrics ?? [], [data]);
   const cards = (items: DashboardMetric[]) => <div className="department-kpi-grid">{items.map((metric, index) => { const value = shown(metric); const icons = [WalletCards, TrendingUp, ReceiptText, Gauge]; return <MetricCard key={metric.metricId} label={metric.metricName} value={value.value} unit={value.unit} caption={metric.subjectName} progress={metric.progressPercent} icon={icons[index % icons.length]} tone="department"/>; })}</div>;
   const results = data?.businessResults ?? []; const trend = results.map(item => ({ label: `T${Number(item.month.slice(5))}`, revenue: item.totalRevenue, grossProfit: item.grossProfit, netProfit: item.netProfitAfterTax, target: item.targetCompletionPercent }));
   const average = metrics.filter(item => item.progressPercent != null).reduce((sum, item, _, values) => sum + (item.progressPercent ?? 0) / values.length, 0);
   const blocks = kind === 'sales' ? salesBlocks(metrics, cards) : kind === 'accounting' ? accountingBlocks(metrics, cards, trend) : hrBlocks(metrics, cards, average);
-  return <div className={`nova-account-page department-dashboard department-dashboard--${kind} grid gap-4`}><header className="department-dashboard-hero"><div><p>{definition.eyebrow}</p><h1>{definition.title}</h1><span>{definition.description}</span></div><div><label><span>Kỳ báo cáo</span><input type="month" value={month} onChange={event => setMonth(event.target.value)}/></label><button onClick={refresh} disabled={loading}><RefreshCw size={17}/>{loading ? 'Đang tải' : 'Làm mới'}</button></div></header>
+  return <div className={`nova-account-page department-dashboard department-dashboard--${kind} grid gap-4`}><header className="department-dashboard-hero"><div><p>{definition.eyebrow}</p><h1>{definition.title}</h1><span>{definition.description}</span></div><div><DashboardPeriodPicker type={periodType} value={period} onChange={(type, value) => { setPeriodType(type); setPeriod(value); }}/><button onClick={refresh} disabled={loading}><RefreshCw size={17}/>{loading ? 'Đang tải' : 'Làm mới'}</button></div></header>
     {loading && <div className="performance-state"><span className="nova-session-spinner"/>Đang tải dashboard phòng ban…</div>}{error && <div className="performance-error"><TriangleAlert/>{error}<button onClick={refresh}>Thử lại</button></div>}{!loading && !error && <DashboardCanvas layout={layout} blocks={blocks}/>}</div>;
 }
 

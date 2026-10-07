@@ -161,6 +161,9 @@ export type LeaderKpiSection = {
   name: string;
   type: 'EXECUTIVE' | 'DEPARTMENT' | 'REGION' | 'VEHICLE' | 'STORE' | 'OTHER';
   sortOrder: number;
+  allocatedFund: number | null;
+  actualFund: number | null;
+  fundCompletionRate: number | null;
   indicators: LeaderKpiIndicator[];
 };
 export type LeaderKpiDashboard = {
@@ -169,5 +172,186 @@ export type LeaderKpiDashboard = {
   importedAt: string | null;
   sourceFileName: string | null;
   totalIndicators: number;
+  totalAllocatedFund: number | null;
+  totalActualFund: number | null;
+  totalFundCompletionRate: number | null;
   sections: LeaderKpiSection[];
+};
+
+export type KpiUnitOption = {
+  id: string;
+  code: string;
+  name: string;
+  type: 'DEPARTMENT' | 'REGION' | 'VEHICLE' | 'STATION';
+  ownerDepartmentId: string | null;
+  ownerDepartmentName: string | null;
+};
+
+export type KpiAdminUnit = KpiUnitOption & {
+  sortOrder: number;
+  active: boolean;
+};
+
+export type KpiPeriodConfiguration = {
+  month: string;
+  unit: KpiAdminUnit;
+  allocatedFund: number;
+  metrics: KpiMetricResult[];
+};
+
+export type KpiMeasurementUnit = {
+  id: string;
+  code: string;
+  name: string;
+  symbol: string;
+  conversionFactor: number;
+  sortOrder: number;
+  active: boolean;
+};
+
+export type KpiRewardRate = {
+  id: string;
+  code: string;
+  name: string;
+  ratePerUnit: number;
+  sortOrder: number;
+  active: boolean;
+};
+
+export type KpiCatalog = {
+  measurementUnits: KpiMeasurementUnit[];
+  rewardRates: KpiRewardRate[];
+};
+
+export type KpiMetricResult = {
+  definitionId: string;
+  code: string;
+  name: string;
+  unitOfMeasure: string;
+  orderInUnit: number;
+  conversionFactor: number;
+  ratePerUnit: number;
+  monthlyTarget: number;
+  mtd: number;
+  completionPercent: number;
+  targetGap: number;
+  rewardAmount: number;
+  dailyValues: Record<string, number>;
+};
+
+export type KpiUnitResult = {
+  id: string;
+  code: string;
+  name: string;
+  type: KpiUnitOption['type'];
+  sortOrder: number;
+  allocatedFund: number;
+  actualFund: number;
+  fundCompletionPercent: number;
+  metrics: KpiMetricResult[];
+};
+
+export type KpiDashboard = {
+  month: string;
+  dataThrough: string;
+  generatedAt: string;
+  lastUpdatedAt: string | null;
+  totalAllocatedFund: number;
+  totalActualFund: number;
+  totalFundCompletionPercent: number;
+  units: KpiUnitResult[];
+};
+
+export type KpiEntrySheet = {
+  month: string;
+  daysInMonth: number;
+  unit: KpiUnitOption;
+  result: KpiUnitResult;
+  entryPolicy: DataSheet['entryPolicy'];
+};
+
+export type KpiWorkbookImportPreview = {
+  month: string;
+  sheet: string;
+  totalUnits: number;
+  totalMetrics: number;
+  dailyCells: number;
+  readyDailyCells: number;
+  existingDailyCells: number;
+  unchangedDailyCells: number;
+  invalidItems: number;
+  importedDailyCells: number;
+  updatedDefinitions: number;
+  synchronizedMetrics: number;
+  synchronizedGoals: number;
+  synchronizedDailyCells: number;
+  rows: {
+    unitCode: string;
+    unitName: string;
+    orderInUnit: number;
+    metricName: string;
+    monthlyTarget: number;
+    unitOfMeasure: string;
+    ratePerUnit: number;
+    conversionFactor: number;
+    allocatedFund: number;
+    populatedDays: number;
+    status: 'READY' | 'EXISTING' | 'UNCHANGED';
+    message: string;
+  }[];
+  issues: {
+    sheet: string;
+    row: number;
+    cellAddress: string;
+    message: string;
+  }[];
+};
+
+export type KpiFormulaRule = {
+  key: string;
+  name: string;
+  description: string | null;
+  standardExpression: string;
+  customExpression: string | null;
+  mode: 'STANDARD' | 'CUSTOM';
+  activeExpression: string;
+  roundingScale: number;
+  enabled: boolean;
+  availableVariables: string[];
+};
+
+export type DashboardFormula = {
+  id: string | null;
+  metricId: string;
+  metricCode: string;
+  metricName: string;
+  departmentCode: string;
+  departmentName: string;
+  measurementUnit: MeasurementUnit;
+  name: string;
+  description: string | null;
+  standardExpression: string;
+  customExpression: string | null;
+  mode: 'STANDARD' | 'CUSTOM';
+  activeExpression: string;
+  roundingScale: number;
+  enabled: boolean;
+  references: string[];
+  previewValue: number;
+  validationMessage: string | null;
+};
+
+export type DashboardFormulaInput = {
+  name: string;
+  description: string | null;
+  mode: DashboardFormula['mode'];
+  customExpression: string | null;
+  roundingScale: number;
+  enabled: boolean;
+};
+
+export type DashboardFormulaPreview = {
+  value: number;
+  references: string[];
+  normalizedExpression: string;
 };

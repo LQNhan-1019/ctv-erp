@@ -1,6 +1,8 @@
 export type AttendanceShift = {
   id: string; code: string; name: string; businessUnitId: string | null;
   businessUnitName: string | null; startTime: string; endTime: string;
+  checkInStartTime: string; checkInEndTime: string;
+  checkOutStartTime: string; checkOutEndTime: string;
   hasBreak: boolean; breakStartTime: string | null; breakEndTime: string | null; crossesMidnight: boolean;
   lateGraceMinutes: number; earlyLeaveGraceMinutes: number;
   deductLateEarly: boolean;
@@ -20,6 +22,11 @@ export type DailyAttendance = {
   checkIn: string | null; checkOut: string | null; workedMinutes: number;
   lateMinutes: number; earlyLeaveMinutes: number; payableDays: number;
   workCode: string | null; status: string; sourceType: string; manuallyAdjusted: boolean;
+  absenceType: 'AUTHORIZED' | 'UNAUTHORIZED' | null; absenceReason: string | null;
+};
+export type AbsenceEvidenceFile = {
+  id: string; fileName: string; contentType: string; fileSize: number;
+  driveWebUrl: string | null; createdAt: string;
 };
 export type EmployeeTimesheet = {
   employeeId: string; employeeCode: string; fullName: string;

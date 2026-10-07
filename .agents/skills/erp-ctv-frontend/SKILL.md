@@ -37,9 +37,9 @@ Work only in `C:\Users\ADMIN\ctv-code\erp-ctv` unless the user explicitly expand
 
 ## Keep routes and permissions coherent
 
-- `/` redirects to `/accounts`.
-- `/login` is public and redirects authenticated users to `/accounts`.
-- `/accounts` and `/dashboard` are protected by the current auth flow.
+- `/` redirects to `/home` with the Next.js `redirect` API.
+- `/login` is public and redirects authenticated users to `/home`.
+- `/home`, `/accounts`, `/dashboard`, and business routes are protected by the current auth flow.
 - Render sidebar items from `GET /api/navigation/me` when dynamic RBAC navigation is implemented; do not hard-code visibility as the authorization mechanism.
 - The backend remains the final authority for every protected action. Frontend permission checks improve UX only.
 - Account administration uses `/api/security/**` and requires `SECURITY.MANAGE`.
@@ -47,7 +47,13 @@ Work only in `C:\Users\ADMIN\ctv-code\erp-ctv` unless the user explicitly expand
 ## UI and implementation quality
 
 - Keep TypeScript strict and use existing request/response types. Do not introduce `any` to bypass a contract mismatch.
-- Reuse the `nova-admin-*` design language and `components/ui/icon.tsx` before adding new global styles or icon systems.
+- Reuse the `nova-admin-*` design language and `lucide-react`; do not recreate an `icon.tsx` wrapper or introduce a second icon system.
+- Use semantic tokens from `app/globals.css` for surfaces, text, border, focus, status, spacing, radius, and elevation. Avoid adding raw color values inside feature components.
+- Keep normal text at least 13px on dense desktop tables and 16px for mobile inputs/body copy. Keep labels and captions at least 12px.
+- On touch/mobile layouts, interactive controls must have at least a 44×44px hit area and 8px spacing between adjacent actions.
+- Every dialog needs `role="dialog"`, `aria-modal`, an accessible title, Escape handling, focus trap, and focus restoration. Prefer the shared dialog infrastructure over new overlay markup.
+- Preserve one `<main>` landmark per rendered page, provide a skip link, and move focus to main content after route changes.
+- Charts need a visible legend, locale-aware values, a text summary/table alternative, non-color-only series differentiation, responsive sizing, and a meaningful empty/error/loading state.
 - Support keyboard navigation, visible focus, labels, useful validation messages, loading states, empty states, and disabled submit buttons during mutations.
 - Make all changed screens usable at desktop and narrow mobile widths. Avoid horizontal overflow and inaccessible modal or drawer content.
 - Wire every visible action to real behavior or clearly mark it unavailable; do not ship decorative buttons that appear functional.
@@ -60,3 +66,4 @@ Work only in `C:\Users\ADMIN\ctv-code\erp-ctv` unless the user explicitly expand
 3. For auth or API changes, verify successful login, failed login, refresh, logout, protected redirect, `401`, `403`, and CSRF failure behavior.
 4. For visual changes, inspect the real page in the browser at desktop and narrow viewport sizes and check the console.
 5. Report changed routes/files, commands run, and any backend prerequisite without exposing credentials or tokens.
+6. Verify light and dark themes at 375px, 768px, 1024px, and 1440px; check keyboard-only operation and reduced-motion mode.

@@ -33,8 +33,9 @@ export type ComplianceDocument = {
   documentNo: string; documentName: string; issuedBy: string | null; issuedOn: string | null; effectiveOn: string | null;
   expiresOn: string | null; reminderDaysBefore: number; responsibleEmployeeId: string | null;
   responsibleEmployeeName: string | null; status: DocumentStatus; expiryState: string; daysRemaining: number | null;
-  fileUri: string | null; notes: string | null; createdAt: string; updatedAt: string;
+  fileUri: string | null; fileCount: number; notes: string | null; createdAt: string; updatedAt: string;
 };
+export type DocumentFile = { id: string; documentId: string; fileName: string; contentType: string; fileSize: number; driveWebUrl: string | null; createdAt: string };
 export type DocumentStatus = 'DRAFT' | 'ACTIVE' | 'EXPIRED' | 'RENEWING' | 'REVOKED';
 export type DocumentInput = {
   businessUnitId: string; documentTypeId: string; documentNo: string; documentName: string; issuedBy: string | null;

@@ -1,7 +1,7 @@
 'use client';
 
-import { BarChart3, CalendarDays, ChevronRight, ClipboardList, Clock3, Database, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Plug, ScrollText, Settings, ShieldCheck, Sun, Table2, Target, Users, type LucideIcon } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { BadgeDollarSign, BarChart3, Calculator, CalendarDays, ChevronRight, ClipboardList, Clock3, Database, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Plug, ScrollText, Settings, ShieldCheck, Sun, Target, Users, type LucideIcon } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/features/auth/context/auth-context';
@@ -22,7 +22,9 @@ const routeMap: Record<string, string> = {
   '/dashboard/hr-admin': '/dashboard/hr-admin',
   '/performance/goals': '/performance/goals',
   '/performance/data-entry': '/performance/data-entry',
+  '/performance/kpi-entry': '/performance/kpi-entry',
   '/performance/results': '/performance/results',
+  '/performance/formulas': '/performance/formulas',
   '/security/users': '/accounts',
   '/security/roles': '/security/roles',
   '/security/audit': '/security/audit',
@@ -43,8 +45,10 @@ const iconByCode: Record<string, LucideIcon> = {
   NAV_DASHBOARD_ACCOUNTING: Database,
   NAV_DASHBOARD_HR_ADMIN: Users,
   NAV_PERFORMANCE_GOALS: Target,
-  NAV_PERFORMANCE_DATA_ENTRY: Table2,
+  NAV_PERFORMANCE_DATA_ENTRY: BadgeDollarSign,
+  NAV_PERFORMANCE_KPI_BONUS_ENTRY: BadgeDollarSign,
   NAV_PERFORMANCE_RESULTS: BarChart3,
+  NAV_PERFORMANCE_FORMULAS: Calculator,
   NAV_SECURITY_USERS: Users,
   NAV_SECURITY_ROLES: KeyRound,
   NAV_SECURITY_AUDIT: ScrollText,
@@ -70,9 +74,11 @@ const pageHeadings: Record<string, { eyebrow: string; title: string }> = {
   '/dashboard/sales': { eyebrow: 'KINH DOANH', title: 'Dashboard Kinh doanh' },
   '/dashboard/accounting': { eyebrow: 'TÀI CHÍNH KẾ TOÁN', title: 'Dashboard Tài chính - Kế toán' },
   '/dashboard/hr-admin': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Dashboard HCNS' },
-  '/performance/goals': { eyebrow: 'HIỆU SUẤT', title: 'Mục tiêu KPI / OKR' },
+  '/performance/goals': { eyebrow: 'HIỆU SUẤT', title: 'Mục tiêu & cấu hình KPI' },
   '/performance/data-entry': { eyebrow: 'HIỆU SUẤT', title: 'Nhập số liệu theo ngày' },
-  '/performance/results': { eyebrow: 'KẾT QUẢ KPI', title: 'Dashboard kết quả vận hành' },
+  '/performance/kpi-entry': { eyebrow: 'KPI TÍNH THƯỞNG', title: 'Nhập KPI theo ngày' },
+  '/performance/results': { eyebrow: 'KẾT QUẢ KPI', title: 'Dashboard KPI & thưởng' },
+  '/performance/formulas': { eyebrow: 'HIỆU SUẤT', title: 'Công thức dashboard' },
   '/hr/employees': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Nhân viên và phòng ban' },
   '/hr/attendance': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Quản lý chấm công' },
   '/admin/expenses': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Tổng hợp chi phí hành chính' },
@@ -123,9 +129,10 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
   if (permissions.includes('SYSTEM.SETTINGS.VIEW')) system.push({ href: '/system/settings', label: 'Cấu hình hệ thống', icon: Settings });
   if (permissions.includes('SYSTEM.INTEGRATION.VIEW')) system.push({ href: '/system/integrations', label: 'Kết nối dịch vụ', icon: Plug });
   if (permissions.includes('SYSTEM.BACKUP.VIEW')) system.push({ href: '/system/backups', label: 'Sao lưu dữ liệu', icon: Database });
-  if (permissions.includes('PERFORMANCE.GOAL.VIEW')) performance.push({ href: '/performance/goals', label: 'Mục tiêu KPI / OKR', icon: Target });
-  if (permissions.includes('PERFORMANCE.DATA.ENTER')) performance.push({ href: '/performance/data-entry', label: 'Nhập số liệu theo ngày', icon: Table2 });
-  if (permissions.includes('PERFORMANCE.RESULTS.VIEW')) performance.push({ href: '/performance/results', label: 'Dashboard kết quả KPI', icon: BarChart3 });
+  if (permissions.includes('PERFORMANCE.GOAL.VIEW') || permissions.includes('PERFORMANCE.KPI.CONFIG.MANAGE')) performance.push({ href: '/performance/goals', label: 'Mục tiêu & cấu hình KPI', icon: Target });
+  if (permissions.includes('PERFORMANCE.DATA.VIEW') || permissions.includes('PERFORMANCE.DATA.ENTER')) performance.push({ href: '/performance/kpi-entry', label: 'Nhập KPI theo ngày', icon: BadgeDollarSign });
+  if (permissions.includes('PERFORMANCE.RESULTS.VIEW')) performance.push({ href: '/performance/results', label: 'Dashboard KPI & thưởng', icon: BarChart3 });
+  if (permissions.includes('PERFORMANCE.FORMULA.VIEW') || permissions.includes('PERFORMANCE.FORMULA.MANAGE')) performance.push({ href: '/performance/formulas', label: 'Công thức dashboard', icon: Calculator });
   if (permissions.includes('HR.VIEW')) humanResources.push({ href: '/hr/employees', label: 'Nhân viên & phòng ban', icon: Users });
   if (permissions.includes('HR.ATTENDANCE.VIEW')) humanResources.push({ href: '/hr/attendance', label: 'Quản lý chấm công', icon: Clock3 });
   if (permissions.includes('ADMIN.EXPENSE.VIEW')) humanResources.push({ href: '/admin/expenses', label: 'Chi phí hành chính', icon: Database });
@@ -156,6 +163,8 @@ export default function AuthenticatedShell({ children }: { children: React.React
   const [navigation, setNavigation] = useState<ShellGroup[]>([]);
   const [usingFallback, setUsingFallback] = useState(false);
   const [notificationSummary, setNotificationSummary] = useState<NotificationSummary>({ unreadTotal: 0, unreadByNavigation: {} });
+  const contentRef = useRef<HTMLElement>(null);
+  const previousPathRef = useRef(pathname);
 
   const refreshNotificationSummary = useCallback(async () => {
     const next = await getNotificationSummary(request);
@@ -181,6 +190,27 @@ export default function AuthenticatedShell({ children }: { children: React.React
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
   }, [router, status]);
+
+  useEffect(() => {
+    if (previousPathRef.current === pathname) return;
+    previousPathRef.current = pathname;
+    setMobileOpen(false);
+    window.requestAnimationFrame(() => contentRef.current?.focus({ preventScroll: true }));
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.documentElement.style.overflow;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileOpen(false);
+    };
+    document.documentElement.style.overflow = 'hidden';
+    window.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.documentElement.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [mobileOpen]);
 
   useEffect(() => {
     if (status !== 'authenticated' || !user) return;
@@ -229,9 +259,10 @@ export default function AuthenticatedShell({ children }: { children: React.React
 
   const initials = user.username.slice(0, 2).toUpperCase();
   return (
-    <main className={`nova-admin-shell snowui-shell ${isDashboardRoute ? 'snowui-dashboard-shell' : ''}`}>
+    <div className={`nova-admin-shell snowui-shell ${isDashboardRoute ? 'snowui-dashboard-shell' : ''}`}>
+      <a className="skip-link" href="#main-content">Bỏ qua đến nội dung chính</a>
       {mobileOpen && <button className="nova-mobile-backdrop" onClick={() => setMobileOpen(false)} aria-label="Đóng menu" />}
-      <aside className={`nova-admin-sidebar ${mobileOpen ? 'open' : ''}`}>
+      <aside id="nova-primary-navigation" className={`nova-admin-sidebar ${mobileOpen ? 'open' : ''}`}>
         <Link className="nova-admin-brand" href="/home"><span>CTV</span><div><b>CTV ERP</b><small>Hệ thống điều hành</small></div></Link>
         <div className="nova-admin-context"><span><ShieldCheck /></span><div><small>KHÔNG GIAN LÀM VIỆC</small><b>Quản trị hệ thống</b></div></div>
         <nav aria-label="Chức năng được cấp quyền">
@@ -243,7 +274,7 @@ export default function AuthenticatedShell({ children }: { children: React.React
                 const ItemIcon = item.icon;
                 const unread = notificationSummary.unreadByNavigation[item.code ?? ''] ?? 0;
                 return (
-                  <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={isActive ? 'active' : ''}>
+                  <Link key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className={isActive ? 'active' : ''} aria-current={isActive ? 'page' : undefined}>
                     <ItemIcon /><span>{item.label}</span>{unread > 0 && <span className="nova-nav-alert-dot" title={unread + ' thông báo chưa đọc'} aria-label={unread + ' thông báo chưa đọc'} />}{isActive && !unread && <i />}
                   </Link>
                 );
@@ -256,12 +287,12 @@ export default function AuthenticatedShell({ children }: { children: React.React
       </aside>
       <section className="nova-admin-workspace">
         <header className="nova-admin-topbar">
-          <button className="nova-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Mở menu"><Menu /></button>
+          <button className="nova-mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Mở menu" aria-expanded={mobileOpen} aria-controls="nova-primary-navigation"><Menu /></button>
           <div><p>{heading.eyebrow}</p><b>{heading.title}</b></div>
           <div className="nova-admin-actions"><NotificationCenter summary={notificationSummary} refreshSummary={refreshNotificationSummary} /><button className="nova-theme-toggle" type="button" onClick={toggleTheme} title="Chuyển chế độ màu" aria-label="Chuyển chế độ màu"><span className="snow-theme-icon-light"><Moon /></span><span className="snow-theme-icon-dark"><Sun /></span></button><span aria-label={`Tài khoản ${user.username}`}>{initials}</span></div>
         </header>
-        {children}
+        <main id="main-content" className="nova-admin-content" tabIndex={-1} ref={contentRef}>{children}</main>
       </section>
-    </main>
+    </div>
   );
 }

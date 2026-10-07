@@ -33,7 +33,7 @@ export default function AttendanceImportDialog({ open, request, download, source
     setFile(next); setPreview(null); setError(''); setSheetName('');
     if (!next) { setEncoded(''); return; }
     if (!next.name.toLowerCase().endsWith('.xlsx')) { setEncoded(''); setError('Chỉ chấp nhận file .xlsx không chứa macro.'); return; }
-    if (next.size > 10 * 1024 * 1024) { setEncoded(''); setError('File Excel tối đa 10 MB.'); return; }
+    if (next.size > 199 * 1024 * 1024) { setEncoded(''); setError('File Excel phải dưới 200 MB; giới hạn thực tế do Quản lý hệ thống cấu hình.'); return; }
     try { setEncoded(await fileBase64(next)); } catch { setError('Không đọc được file đã chọn.'); }
   }
   function useSheet(workbook: Parameters<typeof resolvedSheetFile>[0]) { setFile(resolvedSheetFile(workbook)); setEncoded(workbook.workbookBase64); if (workbook.sheetName) setSheetName(workbook.sheetName); setPreview(null); setError(''); }

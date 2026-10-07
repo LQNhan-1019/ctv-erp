@@ -1,6 +1,7 @@
 'use client';
 
 import type { ComponentType, CSSProperties } from 'react';
+import { useId, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { ArrowDownRight, ArrowUpRight, CheckCircle2, CircleAlert, TriangleAlert } from 'lucide-react';
@@ -42,7 +43,13 @@ export function MetricCard({ label, value, unit, caption, progress, change, icon
     <div className="executive-metric-heading"><span>{label}</span><i><Glyph size={19} strokeWidth={1.9}/></i></div>
     <div className="executive-metric-value"><strong>{value}</strong>{unit && <small>{unit}</small>}</div>
     {change ? <div className={`executive-change ${change.value >= 0 ? 'positive' : 'negative'}`}>{change.value >= 0 ? <ArrowUpRight size={14}/> : <ArrowDownRight size={14}/>}<b>{Math.abs(change.value).toFixed(1)}%</b><span>{change.label}</span></div> : <p>{caption ?? 'Đang tổng hợp trong kỳ báo cáo'}</p>}
-    {progress != null && <div className="executive-metric-progress"><span><i style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}/></span><b>{Math.round(progress)}%</b></div>}
+    {progress != null && <div className="kpi-card-completion">
+      <div className="kpi-card-ring" role="img" aria-label={`Hoàn thành ${Math.round(progress)}% mục tiêu`}
+        style={{ '--ring-angle': `${Math.min(100, Math.max(0, progress)) * 3.6}deg` } as CSSProperties}>
+        <strong>{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress)}%</strong>
+      </div>
+      <span>Hoàn thành mục tiêu{progress > 100 && <b>Vượt {new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress - 100)}%</b>}{progress < 0 && <b>Giá trị thực tế âm</b>}</span>
+    </div>}
   </article>;
 }
 
@@ -58,6 +65,22 @@ export function ComparisonTable<T extends { id: string }>({ columns, rows, empty
 
 export type DashboardAlert = { id: string; severity: 'danger' | 'warning' | 'info' | 'success'; title: string; detail: string; meta?: string };
 export function AlertList({ items }: { items: DashboardAlert[] }) {
-  const IconFor = ({ severity }: { severity: DashboardAlert['severity'] }) => severity === 'success' ? <CheckCircle2/> : severity === 'info' ? <CircleAlert/> : <TriangleAlert/>;
-  return <div className="executive-alerts">{items.map(item => <article key={item.id} className={item.severity}><i aria-hidden="true"><IconFor severity={item.severity}/></i><div><b>{item.title}</b><span>{item.detail}</span>{item.meta && <small>{item.meta}</small>}</div></article>)}</div>;
+  return <div className="executive-alerts">{items.map(item => <AlertItem key={item.id} item={item}/>)}</div>;
+}
+
+function AlertItem({ item }: { item: DashboardAlert }) {
+  const id = useId();
+  const [pinned, setPinned] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const expanded = pinned || hovered;
+  const Glyph = item.severity === 'success' ? CheckCircle2 : item.severity === 'info' ? CircleAlert : TriangleAlert;
+  return <article className={`${item.severity} kpi-alert-item`}
+    onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true); }}
+    onPointerLeave={() => setHovered(false)}
+    onKeyDown={(event) => { if (event.key === 'Escape') { setPinned(false); setHovered(false); } }}>
+    <button type="button" aria-expanded={expanded} aria-controls={id} onClick={() => { setHovered(false); setPinned(!pinned); }}>
+      <Glyph aria-hidden="true"/><span><b>{item.title}</b><small>{item.meta ?? 'Xem thông tin cảnh báo'}</small></span><span aria-hidden="true">{expanded ? '−' : '+'}</span>
+    </button>
+    <div id={id} className="kpi-alert-detail" hidden={!expanded}>{item.detail}</div>
+  </article>;
 }

@@ -97,6 +97,12 @@ export const getLeaderKpiResults = (request: AuthorizedRequest, month: string) =
 export const getKpiBonusDashboard = (request: AuthorizedRequest, month: string) =>
   request<KpiDashboard>(`/api/performance/kpi/dashboard?month=${encodeURIComponent(month)}`);
 
+export type KpiDepartment = 'sales' | 'accounting' | 'hr-admin';
+export const getKpiDataMonths = (request: AuthorizedRequest, department?: KpiDepartment) =>
+  request<string[]>(`/api/performance/kpi/dashboard${department ? `/${department}` : ''}/months`);
+export const getScopedKpiDashboard = (request: AuthorizedRequest, month: string, department?: KpiDepartment) =>
+  request<KpiDashboard>(`/api/performance/kpi/dashboard${department ? `/${department}` : ''}?month=${encodeURIComponent(month)}`);
+
 export const getKpiTargets = (request: AuthorizedRequest, month: string) =>
   request<KpiDashboard>(`/api/performance/kpi/targets?month=${encodeURIComponent(month)}`);
 

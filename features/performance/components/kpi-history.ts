@@ -1,5 +1,7 @@
 import type { KpiDashboard, KpiMetricResult, KpiUnitResult } from '../types/performance';
 
+import { isMoneyUnit } from './kpi-value-format';
+
 type HistoryOption = { value: string; label: string; unit: KpiUnitResult; metric: KpiMetricResult };
 const normalize = (value: string) => value.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('vi-VN');
 
@@ -27,7 +29,7 @@ export function historyPoints(snapshots: KpiDashboard[], selected?: HistoryOptio
   return [...snapshots].sort((a, b) => a.month.localeCompare(b.month)).map(snapshot => {
     const unit = snapshot.units.find(item => item.id === selected?.unit.id);
     const metric = unit?.metrics.find(item => metricKey(unit, item) === selected?.value);
-    const divisor = selected?.metric.conversionFactor || 1;
+    const divisor = selected && isMoneyUnit(selected.metric.unitOfMeasure) ? 1 : selected?.metric.conversionFactor || 1;
     return {
       month: snapshot.month,
       actual: metric && Object.keys(metric.dailyValues).length ? metric.mtd / divisor : null,

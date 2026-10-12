@@ -9,7 +9,7 @@ export default function KpiMonthlyTrendChart({ points, unit }: { points: Monthly
       <CartesianGrid stroke="var(--dashboard-chart-grid)" strokeDasharray="4 5" vertical={false}/>
       <XAxis dataKey="month" tick={{ fill: 'var(--color-ink)', fontSize: 13 }} tickFormatter={value => `${value.slice(5)}/${value.slice(0, 4)}`}/>
       <YAxis width={65} tick={{ fill: 'var(--color-ink)', fontSize: 13 }} tickFormatter={value => new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(value)}/>
-      <Tooltip contentStyle={{ background: 'var(--color-surface)', color: 'var(--color-ink)', borderColor: 'var(--color-border)' }} formatter={value => `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 }).format(Number(value))} ${unit}`}/>
+      <Tooltip contentStyle={{ background: 'var(--color-surface)', color: 'var(--color-ink)', borderColor: 'var(--color-border)' }} formatter={value => `${new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 20 }).format(Number(value))} ${unit}`}/>
       <Legend/>
       <Bar name="Thực tế (MTD)" dataKey="actual" fill="var(--dashboard-chart-revenue)" maxBarSize={56} radius={[6, 6, 0, 0]} isAnimationActive={false}/>
       <Line name="Mục tiêu (MP)" dataKey="target" stroke="var(--dashboard-chart-target)" strokeWidth={3} strokeDasharray="6 4" connectNulls={false} isAnimationActive={false}/>

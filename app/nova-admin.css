@@ -1651,3 +1651,17 @@ html.dark .leader-kpi-viewbar>div button.active{box-shadow:0 3px 12px rgb(0 0 0 
 .kpi-card-ring strong{font:800 18px/1.2 var(--font-inter),sans-serif;color:var(--color-ink);text-align:center;max-width:76px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
 .kpi-card-completion>span{font-size:14px;font-weight:600;line-height:1.5}.kpi-card-completion>span>b{display:block;margin-top:4px;color:var(--executive-accent,var(--color-accent))}
 .kpi-monthly-widget .kpi-monthly-chart{overflow-x:auto;overscroll-behavior-inline:contain}
+.kpi-import-differences{padding:12px;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface)}
+.kpi-import-differences>summary{cursor:pointer;min-height:44px;font-weight:750;color:var(--color-ink)}
+.kpi-import-differences>p{font-size:14px;color:var(--color-ink-soft)}
+.kpi-import-differences .daily-import-preview{max-height:300px;overflow:auto}
+.kpi-import-differences td{white-space:normal;overflow-wrap:anywhere;min-width:130px;font-variant-numeric:tabular-nums}
+.kpi-import-differences td small{display:block;color:var(--color-ink-soft)}
+.google-sheet-grid-toolbar{flex-wrap:wrap;gap:8px}
+/* Exact KPI values: portal avoids clipping inside scrollable dashboard tables. */
+.kpi-exact-value { appearance: none; border: 0; background: transparent; color: inherit; font: inherit; padding: 2px 0; cursor: help; text-align: inherit; border-bottom: 1px dotted currentColor; }
+.kpi-exact-value:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
+.kpi-exact-tooltip { position: fixed; z-index: 10000; width: min(280px, calc(100vw - 24px)); padding: 12px 44px 12px 12px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); color: var(--color-ink); box-shadow: var(--shadow-md); font-size: 14px; overflow-wrap: anywhere; }
+.kpi-exact-tooltip small { display: block; font-size: 12px; color: var(--color-ink-soft); margin-bottom: 4px; }
+.kpi-exact-tooltip button { position: absolute; top: 0; right: 0; width: 44px; height: 44px; border: 0; background: transparent; color: inherit; font-size: 22px; }
+@media (pointer: coarse) { .kpi-exact-value { min-height: 44px; min-width: 44px; } }

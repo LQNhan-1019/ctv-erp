@@ -271,6 +271,7 @@ export type KpiEntrySheet = {
 };
 
 export type KpiWorkbookImportPreview = {
+  differences: { unitName: string; metricName: string; field: string; cellAddress: string; previous: string; incoming: string }[];
   month: string;
   sheet: string;
   totalUnits: number;
@@ -294,7 +295,7 @@ export type KpiWorkbookImportPreview = {
     unitOfMeasure: string;
     ratePerUnit: number;
     conversionFactor: number;
-    allocatedFund: number;
+    allocatedFund: number | null;
     populatedDays: number;
     status: 'READY' | 'EXISTING' | 'UNCHANGED';
     message: string;

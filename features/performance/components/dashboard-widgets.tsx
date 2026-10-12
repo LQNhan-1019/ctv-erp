@@ -3,6 +3,8 @@
 import type { ComponentType, CSSProperties } from 'react';
 import { useId, useState } from 'react';
 import Link from 'next/link';
+import ExactValue from './exact-value';
+import { exactNumber } from './kpi-value-format';
 import dynamic from 'next/dynamic';
 import { ArrowDownRight, ArrowUpRight, CheckCircle2, CircleAlert, TriangleAlert } from 'lucide-react';
 
@@ -34,19 +36,19 @@ export function DashboardSection({ id, eyebrow, title, description, action, tone
   </section>;
 }
 
-export function MetricCard({ label, value, unit, caption, progress, change, icon: Glyph, tone = 'blue' }: {
-  label: string; value: string; unit?: string; caption?: string; progress?: number | null;
+export function MetricCard({ label, value, unit, caption, exact, progress, change, icon: Glyph, tone = 'blue' }: {
+  label: string; value: string; unit?: string; caption?: string; exact?: string; progress?: number | null;
   change?: { value: number; label: string } | null; icon: ComponentType<{ size?: number; strokeWidth?: number }>;
   tone?: DashboardTone;
 }) {
   return <article className={`executive-metric tone-${tone}`}>
     <div className="executive-metric-heading"><span>{label}</span><i><Glyph size={19} strokeWidth={1.9}/></i></div>
-    <div className="executive-metric-value"><strong>{value}</strong>{unit && <small>{unit}</small>}</div>
+    <div className="executive-metric-value"><strong>{exact ? <ExactValue exact={exact}>{value}</ExactValue> : value}</strong>{unit && <small>{unit}</small>}</div>
     {change ? <div className={`executive-change ${change.value >= 0 ? 'positive' : 'negative'}`}>{change.value >= 0 ? <ArrowUpRight size={14}/> : <ArrowDownRight size={14}/>}<b>{Math.abs(change.value).toFixed(1)}%</b><span>{change.label}</span></div> : <p>{caption ?? 'Đang tổng hợp trong kỳ báo cáo'}</p>}
     {progress != null && <div className="kpi-card-completion">
       <div className="kpi-card-ring" role="img" aria-label={`Hoàn thành ${Math.round(progress)}% mục tiêu`}
         style={{ '--ring-angle': `${Math.min(100, Math.max(0, progress)) * 3.6}deg` } as CSSProperties}>
-        <strong>{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress)}%</strong>
+        <strong><ExactValue exact={`${exactNumber(progress)}%`}>{new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress)}%</ExactValue></strong>
       </div>
       <span>Hoàn thành mục tiêu{progress > 100 && <b>Vượt {new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(progress - 100)}%</b>}{progress < 0 && <b>Giá trị thực tế âm</b>}</span>
     </div>}
@@ -55,7 +57,7 @@ export function MetricCard({ label, value, unit, caption, progress, change, icon
 
 export function ProgressDonut({ value, label, detail, tone = 'amber' }: { value: number | null; label: string; detail?: string; tone?: DashboardTone }) {
   const safe = Math.min(100, Math.max(0, value ?? 0));
-  return <article className={`executive-donut-card tone-${tone}`}><span>{label}</span><div className="executive-donut" style={{ '--donut-value': `${safe * 3.6}deg` } as React.CSSProperties}><strong>{value == null ? '—' : `${Math.round(value)}%`}</strong></div>{detail && <small>{detail}</small>}</article>;
+  return <article className={`executive-donut-card tone-${tone}`}><span>{label}</span><div className="executive-donut" style={{ '--donut-value': `${safe * 3.6}deg` } as React.CSSProperties}><strong>{value == null ? '—' : <ExactValue exact={`${exactNumber(value)}%`}>{Math.round(value)}%</ExactValue>}</strong></div>{detail && <small>{detail}</small>}</article>;
 }
 
 export type TableColumn<T> = { key: string; label: string; align?: 'left' | 'right' | 'center'; render: (row: T) => React.ReactNode };

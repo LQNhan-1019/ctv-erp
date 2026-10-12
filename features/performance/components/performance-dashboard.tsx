@@ -7,6 +7,8 @@ import { useAuth } from '@/features/auth/context/auth-context';
 import { useApiResource } from '@/lib/api/use-api-resource';
 import { getScopedKpiDashboard, type KpiDepartment } from '../api/performance-api';
 import KpiMonthlyTrend from './kpi-monthly-trend';
+import ExactValue from './exact-value';
+import { metricValue, exactNumber } from './kpi-value-format';
 import type { KpiDashboard, KpiMetricResult, KpiUnitResult } from '../types/performance';
 import {
   AlertList, ComparisonTable, DashboardSection, MetricCard, ProgressDonut,
@@ -44,12 +46,14 @@ function averageProgress(unit: KpiUnitResult) {
 }
 
 function Metric({ metric, tone = 'blue' }: { metric: KpiMetricResult; tone?: DashboardTone }) {
-  const factor = metric.conversionFactor || 1;
+  const actual = metricValue(metric.mtd, metric.unitOfMeasure, metric.conversionFactor);
+  const target = metricValue(metric.monthlyTarget, metric.unitOfMeasure, metric.conversionFactor);
+  const gap = metricValue(metric.targetGap, metric.unitOfMeasure, metric.conversionFactor);
   return <MetricCard
     label={metric.name}
-    value={number(metric.mtd / factor, 2)}
-    unit={metric.unitOfMeasure}
-    caption={`MP ${number(metric.monthlyTarget / factor, 2)} · MTG ${number(metric.targetGap / factor, 2)}`}
+    value={actual.compact}
+    exact={`MTD: ${actual.exact} · MP: ${target.exact} · MTG: ${gap.exact}`}
+    caption={`MP ${target.compact} · MTG ${gap.compact}`}
     progress={metric.completionPercent}
     icon={Target}
     tone={tone}
@@ -59,7 +63,7 @@ function Metric({ metric, tone = 'blue' }: { metric: KpiMetricResult; tone?: Das
 function UnitMetrics({ unit, tone }: { unit: KpiUnitResult; tone: DashboardTone }) {
   return <div className="executive-department-metrics">
     {unit.metrics.map((metric) => <Metric key={metric.definitionId} metric={metric} tone={tone}/>)}
-    <MetricCard label="Thành tiền" value={money(unit.actualFund)} caption={`Quỹ phân bổ ${money(unit.allocatedFund)}`} progress={unit.fundCompletionPercent} icon={BadgeDollarSign} tone="amber"/>
+    <MetricCard label="Thành tiền" value={money(unit.actualFund)} exact={`Thành tiền: ${exactNumber(unit.actualFund)} đồng · Quỹ phân bổ: ${exactNumber(unit.allocatedFund)} đồng`} caption={`Quỹ phân bổ ${money(unit.allocatedFund)}`} progress={unit.fundCompletionPercent} icon={BadgeDollarSign} tone="amber"/>
   </div>;
 }
 
@@ -70,7 +74,7 @@ function OperationsTable({ units, title }: { units: KpiUnitResult[]; title: stri
     { key: 'name', label: title, render: (row) => <b className="executive-row-name"><i/>{row.name}</b> },
     ...[0, 1, 2].map((index): TableColumn<UnitRow> => ({
       key: `metric-${index}`, label: labels[index]?.name ?? `Chỉ tiêu ${index + 1}`, align: 'right',
-      render: (row) => row.metrics[index] ? <span title={`${row.metrics[index].name} · MP ${number(row.metrics[index].monthlyTarget / (row.metrics[index].conversionFactor || 1), 2)}`}>{number(row.metrics[index].mtd / (row.metrics[index].conversionFactor || 1), 2)} <small>{row.metrics[index].unitOfMeasure}</small></span> : '—',
+      render: (row) => row.metrics[index] ? <ExactValue exact={metricValue(row.metrics[index].mtd, row.metrics[index].unitOfMeasure, row.metrics[index].conversionFactor).exact}>{metricValue(row.metrics[index].mtd, row.metrics[index].unitOfMeasure, row.metrics[index].conversionFactor).compact}</ExactValue> : '—',
     })),
     { key: 'progress', label: 'TL% bình quân', align: 'right', render: (row) => <b>{number(row.progress)}%</b> },
   ];
@@ -101,7 +105,7 @@ export default function PerformanceDashboard({ department }: { department?: KpiD
       id: metric.definitionId,
       severity: metric.completionPercent < 60 ? 'danger' : 'warning',
       title: `${unit.name} · ${metric.name}`,
-      detail: `${unit.name}: ${metric.name}. Thực tế MTD ${number(metric.mtd / (metric.conversionFactor || 1), 2)} ${metric.unitOfMeasure}; mục tiêu tháng MP ${number(metric.monthlyTarget / (metric.conversionFactor || 1), 2)} ${metric.unitOfMeasure}. Hoàn thành ${number(metric.completionPercent)}%; khoảng cách mục tiêu ${number(metric.targetGap / (metric.conversionFactor || 1), 2)} ${metric.unitOfMeasure}. Cảnh báo vì tỷ lệ dưới 85% mục tiêu tháng, chưa điều chỉnh theo số ngày đã qua. Kỳ ${month}, dữ liệu đến ${data?.dataThrough ?? '—'}.`,
+      detail: `${unit.name}: ${metric.name}. Thực tế MTD ${metricValue(metric.mtd, metric.unitOfMeasure, metric.conversionFactor).compact}; mục tiêu tháng MP ${metricValue(metric.monthlyTarget, metric.unitOfMeasure, metric.conversionFactor).compact}. Hoàn thành ${number(metric.completionPercent)}%; khoảng cách mục tiêu ${metricValue(metric.targetGap, metric.unitOfMeasure, metric.conversionFactor).compact}. Cảnh báo vì tỷ lệ dưới 85% mục tiêu tháng, chưa điều chỉnh theo số ngày đã qua. Kỳ ${month}, dữ liệu đến ${data?.dataThrough ?? '—'}.`,
       meta: `${number(metric.completionPercent)}% · ${metric.unitOfMeasure}`,
     }));
   if (!alerts.length && units.length) alerts.push({ id: 'healthy', severity: 'success', title: 'Không có KPI dưới ngưỡng cảnh báo', detail: 'Không có chỉ tiêu nào dưới 85% MP. Đây là ngưỡng so với mục tiêu cả tháng, không phải dự báo tiến độ theo ngày.' });
@@ -123,7 +127,7 @@ export default function PerformanceDashboard({ department }: { department?: KpiD
         {board && <UnitMetrics unit={board} tone="blue"/>}
         <div className="executive-overview-row" style={departments.length ? undefined : { gridTemplateColumns: 'minmax(0,1fr)' }}>
           {!!departments.length && <article className="executive-widget wide"><header><div><span>TIẾN ĐỘ PHÒNG BAN</span><h3>So sánh tỷ lệ hoàn thành KPI</h3></div><b>{departments.length} phòng ban</b></header>
-            <div className="kpi-executive-department-list">{departments.map((unit) => <article key={unit.id}><div><Building2/><span><b>{unit.name}</b><small>{unit.metrics.map((metric) => `${metric.name}: ${number(metric.mtd / (metric.conversionFactor || 1), 2)}/${number(metric.monthlyTarget / (metric.conversionFactor || 1), 2)} ${metric.unitOfMeasure}`).join(' · ')}</small></span></div><ProgressDonut value={averageProgress(unit)} label="TL% bình quân" detail={`Thành tiền ${money(unit.actualFund)}`} tone="green"/></article>)}</div>
+            <div className="kpi-executive-department-list">{departments.map((unit) => <article key={unit.id}><div><Building2/><span><b>{unit.name}</b><small>{unit.metrics.map((metric) => `${metric.name}: ${metricValue(metric.mtd, metric.unitOfMeasure, metric.conversionFactor).compact} / ${metricValue(metric.monthlyTarget, metric.unitOfMeasure, metric.conversionFactor).compact}`).join(' · ')}</small></span></div><ProgressDonut value={averageProgress(unit)} label="TL% bình quân" detail={`Thành tiền ${money(unit.actualFund)}`} tone="green"/></article>)}</div>
           </article>}
           <article className="executive-widget alerts"><header><div><span>CẢNH BÁO KPI</span><h3>Chỉ tiêu cần theo dõi</h3></div><b>{alerts.filter((item) => item.severity !== 'success').length}</b></header><AlertList items={alerts}/></article>
         </div>

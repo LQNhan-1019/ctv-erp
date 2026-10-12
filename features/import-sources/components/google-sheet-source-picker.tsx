@@ -13,6 +13,12 @@ export const resolvedSheetFile = (workbook: ResolvedGoogleSheet) => {
   return new File([bytes], workbook.filename, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 };
 
+function columnName(index: number) {
+  let result = '';
+  for (let value = index + 1; value > 0; value = Math.floor((value - 1) / 26)) result = String.fromCharCode(65 + (value - 1) % 26) + result;
+  return result;
+}
+
 export default function GoogleSheetSourcePicker({ request, feature, disabled, onResolved }: {
   request: AuthorizedRequest;
   feature: GoogleSheetFeature;
@@ -27,6 +33,7 @@ export default function GoogleSheetSourcePicker({ request, feature, disabled, on
   const [workbook, setWorkbook] = useState<ResolvedGoogleSheet | null>(null);
   const [activeSheet, setActiveSheet] = useState('');
   const [showGrid, setShowGrid] = useState(false);
+  const [page, setPage] = useState(0);
   const selectedSource = sources.find((source) => source.id === sourceId);
   const sheet = workbook?.sheets.find((item) => item.name === activeSheet);
 
@@ -50,6 +57,7 @@ export default function GoogleSheetSourcePicker({ request, feature, disabled, on
       const name = result.sheets.some((item) => item.name === result.sheetName) ? result.sheetName! : (result.sheets[0]?.name ?? '');
       setWorkbook(result);
       setActiveSheet(name);
+      setPage(0);
       setShowGrid(true);
       await onResolved(feature === 'PERFORMANCE_DAILY' ? { ...result, sheetName: name || null } : result);
     }
@@ -59,7 +67,7 @@ export default function GoogleSheetSourcePicker({ request, feature, disabled, on
 
   async function selectSheet(name: string) {
     if (!workbook) return;
-    setActiveSheet(name); setError('');
+    setActiveSheet(name); setPage(0); setError('');
     try { if (feature === 'PERFORMANCE_DAILY') await onResolved({ ...workbook, sheetName: name }); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Không kiểm tra được sheet'); }
   }
@@ -73,9 +81,10 @@ export default function GoogleSheetSourcePicker({ request, feature, disabled, on
     {showGrid && workbook && <div className="nova-overlay google-sheet-grid-overlay" role="presentation"><section className="nova-dialog google-sheet-grid-dialog" role="dialog" aria-modal="true" aria-label="Xem Google Sheet">
       <header><div><p>GOOGLE SHEETS</p><h2>{selectedSource?.name ?? workbook.filename}</h2><span>Xem trực tiếp dữ liệu đã đọc{feature === 'PERFORMANCE_DAILY' ? ' và chọn sheet để nhập số liệu.' : '.'}</span></div><button type="button" onClick={() => setShowGrid(false)} aria-label="Đóng xem file"><X /></button></header>
       <div className="google-sheet-grid-toolbar"><span>{sheet ? `${sheet.rowCount} dòng · ${sheet.columnCount} cột` : 'Không có sheet'}</span>{selectedSource && <a href={selectedSource.spreadsheetUrl} target="_blank" rel="noopener noreferrer"><ExternalLink /> Mở trên Google Sheets</a>}</div>
-      <div className="google-sheet-grid-scroll"><table><thead><tr><th aria-label="Số dòng" />{Array.from({ length: Math.max(sheet?.columnCount ?? 0, 1) }, (_, index) => <th key={index}>{index < 26 ? String.fromCharCode(65 + index) : 'A' + String.fromCharCode(65 + index - 26)}</th>)}</tr></thead><tbody>{sheet?.rows.map((row) => <tr key={row.number}><th>{row.number}</th>{Array.from({ length: Math.max(sheet.columnCount, 1) }, (_, index) => <td key={index} title={row.cells[index] ?? ''}>{row.cells[index] ?? ''}</td>)}</tr>)}</tbody></table>{!sheet?.rows.length && <p>Sheet này chưa có dòng dữ liệu.</p>}</div>
+      <div className="google-sheet-grid-scroll"><table><thead><tr><th aria-label="Số dòng" />{Array.from({ length: Math.max(sheet?.columnCount ?? 0, 1) }, (_, index) => <th key={index}>{columnName(index)}</th>)}</tr></thead><tbody>{sheet?.rows.slice(page * 100, (page + 1) * 100).map((row) => <tr key={row.number}><th>{row.number}</th>{Array.from({ length: Math.max(sheet.columnCount, 1) }, (_, index) => <td key={index} title={row.cells[index] ?? ''}>{row.cells[index] ?? ''}</td>)}</tr>)}</tbody></table>{!sheet?.rows.length && <p>Sheet này chưa có dòng dữ liệu.</p>}</div>
+      <div className="google-sheet-grid-toolbar"><button type="button" className="nova-button secondary" disabled={page === 0} onClick={() => setPage(value => value - 1)}>Trang trước</button><span>Trang {page + 1}/{Math.max(1, Math.ceil((sheet?.rows.length ?? 0) / 100))} · {sheet?.rows.length ?? 0} dòng có dữ liệu</span><button type="button" className="nova-button secondary" disabled={(page + 1) * 100 >= (sheet?.rows.length ?? 0)} onClick={() => setPage(value => value + 1)}>Trang sau</button></div>
       <footer><div className="google-sheet-grid-tabs" role="tablist" aria-label="Các sheet">{workbook.sheets.map((item) => <button key={item.name} type="button" className={item.name === activeSheet ? 'active' : ''} onClick={() => void selectSheet(item.name)}>{item.name}</button>)}</div><button type="button" className="nova-button primary" onClick={() => setShowGrid(false)}>{feature === 'PERFORMANCE_DAILY' ? 'Dùng sheet này' : 'Đóng xem trước'}</button></footer>
-      <small className="google-sheet-grid-note">Hiển thị tối đa 40 dòng × 40 cột mỗi sheet. Bản xem này chưa ghi dữ liệu vào hệ thống.</small>
+      <small className="google-sheet-grid-note">Đã đọc toàn bộ vùng có dữ liệu, kể cả cột AP trở đi. Mỗi trang 100 dòng; cuộn ngang để xem các cột. Bản xem này chưa ghi dữ liệu.</small>
     </section></div>}
   </section>;
 }

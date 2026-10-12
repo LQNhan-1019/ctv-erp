@@ -57,8 +57,8 @@ export default function KpiWorkbookImportDialog({ month, onClose, onImported }: 
 
   async function commit() {
     if (!file || !preview || preview.invalidItems) return;
-    if (mode === 'OVERWRITE' && preview.existingDailyCells
-      && !await appDialog.confirm(`Ghi đè ${preview.existingDailyCells} ô số liệu ngày đã có? MP, ĐVT, Ti và quỹ luôn được cập nhật theo file.`)) return;
+    if (mode === 'OVERWRITE' && (preview.differences?.length ?? preview.existingDailyCells)
+      && !await appDialog.confirm(`Ghi đè ${preview.differences?.length ?? preview.existingDailyCells} giá trị khác nhau (số liệu ngày và cấu hình KPI) theo file đã xem trước? Ô quỹ trống giữ nguyên giá trị đang có.`)) return;
     setBusy('import'); setError('');
     try { onImported(await importKpiWorkbook(request, file, month, mode, sheetName)); }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Không import được file KPI'); }
@@ -75,7 +75,7 @@ export default function KpiWorkbookImportDialog({ month, onClose, onImported }: 
           const nextFile = resolvedSheetFile(workbook); await inspect(nextFile, workbook.sheetName ?? '');
         }}/>
         <label><span>File Excel</span><input type="file" accept=".xlsx,.xls" disabled={Boolean(busy)} onChange={(event) => choose(event.target.files?.[0] ?? null)}/></label>
-        <label><span>Khi số liệu ngày đã tồn tại</span><select value={mode} disabled={Boolean(busy)} onChange={(event) => setMode(event.target.value as 'SKIP_EXISTING' | 'OVERWRITE')}><option value="SKIP_EXISTING">Bỏ qua ô đã có (an toàn)</option><option value="OVERWRITE">Ghi đè ô đã có</option></select><small>MP, ĐVT, Ti và quỹ vẫn cập nhật theo file ở cả hai chế độ.</small></label>
+        <label><span>Khi dữ liệu đã tồn tại</span><select value={mode} disabled={Boolean(busy)} onChange={(event) => setMode(event.target.value as 'SKIP_EXISTING' | 'OVERWRITE')}><option value="SKIP_EXISTING">Giữ dữ liệu hiện có, chỉ thêm dữ liệu mới</option><option value="OVERWRITE">Ghi đè các giá trị khác theo file</option></select><small>Áp dụng cả số liệu ngày, MP, ĐVT, Ti và quỹ. Quỹ trống giữ nguyên; nếu chưa có quỹ thì khởi tạo 0. Muốn xóa giá trị quỹ, nhập rõ số 0.</small></label>
         {file && <div className="daily-import-file"><FileSpreadsheet/><span>{file.name}{sheetName ? ` · ${sheetName}` : ''}</span></div>}
         <button className="nova-button secondary daily-import-inspect" disabled={Boolean(busy) || !file} onClick={() => file && void inspect(file, sheetName)}>{busy === 'preview' ? 'Đang đọc và kiểm tra…' : 'Kiểm tra lại dữ liệu'}</button>
       </section>
@@ -84,6 +84,11 @@ export default function KpiWorkbookImportDialog({ month, onClose, onImported }: 
         {error && <div className="nova-form-error daily-import-request-error"><AlertTriangle/><span>{error}</span></div>}
         {!preview && !error && <div className="daily-import-empty"><FileSpreadsheet/><strong>Chưa có dữ liệu xem trước</strong><span>Chọn Excel hoặc Google Sheet để bắt đầu.</span></div>}
         {preview && <>
+          <details className="kpi-import-differences" open>
+            <summary>Đối chiếu: {preview.differences?.length ?? 0} giá trị khác dữ liệu đang lưu</summary>
+            <p>{mode === 'OVERWRITE' ? 'Các khác biệt dưới đây sẽ được ghi đè sau khi xác nhận.' : 'Các giá trị hiện có được giữ nguyên; chỉ bổ sung cấu hình/ô ngày còn thiếu.'}</p>
+            <div className="daily-import-preview"><table><thead><tr><th>Ô / trường</th><th>Đơn vị / chỉ tiêu</th><th>Hiện có</th><th>Từ file</th></tr></thead><tbody>{(preview.differences ?? []).map((difference, index) => <tr key={`${difference.cellAddress}-${difference.field}-${index}`}><td><b>{difference.cellAddress}</b><small>{difference.field}</small></td><td>{difference.unitName}<small>{difference.metricName}</small></td><td>{difference.previous}</td><td>{difference.incoming}</td></tr>)}</tbody></table></div>
+          </details>
           <div className="daily-import-summary"><span><b>{preview.totalUnits}</b> đơn vị</span><span><b>{preview.totalMetrics}</b> chỉ tiêu</span><span><b>{preview.readyDailyCells}</b> ô mới</span><span><b>{preview.existingDailyCells}</b> đã có</span><span><b>{preview.unchangedDailyCells}</b> không đổi</span><span className={preview.invalidItems ? 'invalid' : ''}><b>{preview.invalidItems}</b> lỗi</span></div>
           <div className={'daily-import-error-panel ' + (preview.invalidItems ? 'has-errors' : 'is-valid')}><header>{preview.invalidItems ? <><AlertTriangle/><div><strong>File còn {preview.invalidItems} lỗi</strong><span>Sửa đúng ô được báo rồi kiểm tra lại.</span></div></> : <><CheckCircle2/><div><strong>File hợp lệ</strong><span>Sẵn sàng đồng bộ KPI thưởng, mục tiêu và toàn bộ ô nhập liệu từng ngày.</span></div></>}</header>{preview.issues.length > 0 && <div className="daily-import-error-list">{preview.issues.map((issue, index) => <article key={`${issue.sheet}-${issue.cellAddress}-${index}`}><code>{issue.sheet}!{issue.cellAddress}</code><div><strong>{issue.message}</strong><span>Dòng {issue.row}</span></div></article>)}</div>}</div>
           <div className="daily-import-preview kpi-import-preview"><table><thead><tr><th>Đơn vị / chỉ tiêu</th><th>MP</th><th>ĐVT</th><th>Ti</th><th>Hệ số</th><th>Ngày có số</th><th>Kết quả</th></tr></thead><tbody>{preview.rows.map((row) => <tr key={`${row.unitCode}-${row.orderInUnit}`} className={row.status.toLowerCase()}><td><b>{row.unitName}</b><small>{row.orderInUnit}/3 · {row.metricName}</small></td><td>{format(row.monthlyTarget)}</td><td>{row.unitOfMeasure}</td><td>{format(row.ratePerUnit)}</td><td>{format(row.conversionFactor)}</td><td>{row.populatedDays}</td><td><span className={`daily-import-status ${row.status.toLowerCase()}`}>{row.status === 'READY' ? 'Sẵn sàng' : row.status === 'EXISTING' ? 'Có dữ liệu cũ' : 'Không đổi'}</span><small>{row.message}</small></td></tr>)}</tbody></table></div>

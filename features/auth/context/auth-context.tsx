@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { apiDownload, apiRequest, ApiClientError, type ApiRequestOptions } from '@/lib/api/client';
+import { apiDownload, apiRequest, ApiClientError, type ApiDownloadOptions, type ApiRequestOptions } from '@/lib/api/client';
 import { getCurrentUser, login as loginRequest, logout as logoutRequest, refreshAccessToken } from '../api/auth-api';
 import type { AuthUser, LoginInput } from '../types/auth';
 
@@ -14,7 +14,7 @@ type AuthContextValue = {
   login: (input: LoginInput) => Promise<void>;
   logout: () => Promise<void>;
   request: <T>(path: string, options?: ApiRequestOptions) => Promise<T>;
-  download: (path: string) => Promise<Blob>;
+  download: (path: string, options?: ApiDownloadOptions) => Promise<Blob>;
 };
 type RestoredSession = { accessToken: string; expiresAt: string; user: AuthUser };
 
@@ -153,7 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearInterval(timer);
   }, [refresh, status]);
 
-  const download = useCallback(async (path: string): Promise<Blob> => {
+  const download = useCallback(async (path: string, options: ApiDownloadOptions = {}): Promise<Blob> => {
     let accessToken = accessTokenRef.current;
     if (!accessToken) {
       throw new ApiClientError({
@@ -164,12 +164,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
     }
     try {
-      return await apiDownload(path, accessToken);
+      return await apiDownload(path, accessToken, options);
     } catch (error) {
       if (!(error instanceof ApiClientError) || error.status !== 401) throw error;
       accessToken = await refresh();
       if (!accessToken) throw error;
-      return apiDownload(path, accessToken);
+      return apiDownload(path, accessToken, options);
     }
   }, [refresh]);
 

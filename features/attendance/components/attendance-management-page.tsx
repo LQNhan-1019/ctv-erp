@@ -122,7 +122,7 @@ export default function AttendanceManagementPage() {
 
     {!loading && tab === 'overview' && dashboard && <Overview data={dashboard} />}
     {!loading && tab === 'timesheet' && timesheet && <section className="attendance-panel">
-      <header><div><h2>Bảng công tháng {Number(month.slice(5))}</h2><p>Nhấn vào ô có dữ liệu để xem giờ vào/ra và hiệu chỉnh.</p></div><label className="attendance-department-filter"><span>Phòng ban</span><select value={businessUnitId} onChange={event=>setBusinessUnitId(event.target.value)}><option value="">Tất cả phòng ban</option>{departments.map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label></header>
+      <header><div><h2>Bảng công tháng {Number(month.slice(5))}</h2><p><b>V</b>: không có lượt chấm — chọn nghỉ phép/không phép. <b>!</b>: chỉ có một lượt chấm — nhấn để bổ sung giờ còn thiếu.</p></div><label className="attendance-department-filter"><span>Phòng ban</span><select value={businessUnitId} onChange={event=>setBusinessUnitId(event.target.value)}><option value="">Tất cả phòng ban</option>{departments.map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label></header>
       <div className="attendance-grid-wrap"><table className="attendance-grid"><thead><tr><th className="sticky employee">Nhân viên</th>{dayNumbers.map((day) => <th key={day}>{day}</th>)}<th>Tổng công</th></tr></thead><tbody>
         {timesheet.employees.map((employee) => { const byDay = new Map(employee.days.map((day) => [Number(day.workDate.slice(-2)), day])); return <tr key={employee.employeeId}><th className="sticky employee"><b>{employee.fullName}</b><small>{employee.employeeCode} · {employee.departmentName}</small></th>{dayNumbers.map((number) => { const day = byDay.get(number); return <td key={number}>{day ? <button title={`${statusLabels[day.status] ?? day.status} · ${time(day.checkIn)}–${time(day.checkOut)}`} className={`attendance-code ${day.status.toLowerCase()}`} onClick={() => canAdjust && setEditingDay(day)}>{day.workCode ?? (day.status === 'ABSENT' ? 'V' : '!')}</button> : '—'}</td>; })}<td className="attendance-total">{employee.payrollDays}</td></tr>; })}
       </tbody></table></div>
@@ -145,7 +145,8 @@ function AttendanceDayDialog({ day, request, download, close, saved }: {
   close: () => void;
   saved: () => Promise<void>;
 }) {
-  const absenceMode = ['ABSENT', 'AUTHORIZED_LEAVE', 'MISSING_CHECK_IN', 'MISSING_CHECK_OUT'].includes(day.status);
+  const absenceMode = ['ABSENT', 'AUTHORIZED_LEAVE'].includes(day.status);
+  const missingPunchMode = ['MISSING_CHECK_IN', 'MISSING_CHECK_OUT'].includes(day.status);
   const [decision, setDecision] = useState<'AUTHORIZED' | 'UNAUTHORIZED'>(day.absenceType === 'AUTHORIZED' ? 'AUTHORIZED' : 'UNAUTHORIZED');
   const [files, setFiles] = useState<AbsenceEvidenceFile[]>([]);
   const [saving, setSaving] = useState(false);
@@ -205,8 +206,10 @@ function AttendanceDayDialog({ day, request, download, close, saved }: {
   const missingDetail = day.checkIn == null && day.checkOut != null
     ? 'Thiếu giờ chấm vào' : day.checkIn != null && day.checkOut == null
       ? 'Thiếu giờ chấm ra' : 'Không có đủ cặp giờ vào/ra';
+  const suggestedCheckIn = day.checkIn ?? (missingPunchMode ? day.scheduledStart : null);
+  const suggestedCheckOut = day.checkOut ?? (missingPunchMode ? day.scheduledEnd : null);
 
-  return <div className="nova-overlay"><section className="nova-dialog attendance-adjust"><header><div><p>{absenceMode ? 'XÁC NHẬN VẮNG / NGHỈ PHÉP' : 'HIỆU CHỈNH CHẤM CÔNG'}</p><h2>{day.workDate}</h2><span>{absenceMode ? `${missingDetail}. Hệ thống mặc định V · 0 công.` : 'Mọi thay đổi đều được lưu lịch sử và nhật ký hoạt động.'}</span></div><button type="button" onClick={close}><X /></button></header><form onSubmit={submit}><div className="nova-dialog-body">
+  return <div className="nova-overlay"><section className="nova-dialog attendance-adjust"><header><div><p>{absenceMode ? 'XÁC NHẬN VẮNG / NGHỈ PHÉP' : missingPunchMode ? 'BỔ SUNG LƯỢT CHẤM CÔNG' : 'HIỆU CHỈNH CHẤM CÔNG'}</p><h2>{day.workDate}</h2><span>{absenceMode ? 'Không có giờ vào và giờ ra. Hệ thống mặc định V · 0 công.' : missingPunchMode ? `${missingDetail}. Giờ còn thiếu được đề xuất theo ca; lưu lại để hệ thống tự tính công.` : 'Mọi thay đổi đều được lưu lịch sử và nhật ký hoạt động.'}</span></div><button type="button" onClick={close}><X /></button></header><form onSubmit={submit}><div className="nova-dialog-body">
     {error && <div className="performance-error attendance-adjust-error"><TriangleAlert />{error}</div>}
     {absenceMode ? <>
       <fieldset className="attendance-absence-options"><legend>Hình thức vắng</legend><label className={decision === 'AUTHORIZED' ? 'selected authorized' : ''}><input type="radio" name="decision" value="AUTHORIZED" checked={decision === 'AUTHORIZED'} onChange={() => setDecision('AUTHORIZED')} /><span><b>Có phép</b><small>Tính P · 1 ngày công</small></span></label><label className={decision === 'UNAUTHORIZED' ? 'selected unauthorized' : ''}><input type="radio" name="decision" value="UNAUTHORIZED" checked={decision === 'UNAUTHORIZED'} onChange={() => setDecision('UNAUTHORIZED')} /><span><b>Không phép</b><small>Tính V · 0 ngày công</small></span></label></fieldset>
@@ -214,9 +217,9 @@ function AttendanceDayDialog({ day, request, download, close, saved }: {
       {decision === 'AUTHORIZED' && <label className="attendance-adjust-wide attendance-evidence-input"><span>Đơn nghỉ phép hoặc ảnh tin nhắn</span><input name="evidence" type="file" accept="image/jpeg,image/png,image/webp,application/pdf,.doc,.docx" /><small>Hỗ trợ ảnh, PDF, Word; dung lượng theo giới hạn upload trong Cài đặt hệ thống.</small></label>}
       {!!files.length && <div className="attendance-evidence-list"><strong>Minh chứng đã lưu</strong>{files.map(file => <article key={file.id}><FileText /><button type="button" className="attendance-evidence-name" onClick={() => void openFile(file)}>{file.fileName}</button><small>{Math.max(1, Math.round(file.fileSize / 1024))} KB</small><button type="button" className="attendance-evidence-delete" aria-label={`Xóa ${file.fileName}`} onClick={() => void removeFile(file)}><Trash2 /></button></article>)}</div>}
     </> : <>
-      <label><span>Giờ vào</span><input name="checkIn" type="datetime-local" defaultValue={localInput(day.checkIn)} /></label><label><span>Giờ ra</span><input name="checkOut" type="datetime-local" defaultValue={localInput(day.checkOut)} /></label><label className="attendance-adjust-wide"><span>Lý do</span><textarea className="nova-textarea" name="reason" required maxLength={500} /></label>
+      <label><span>Giờ vào{day.checkIn == null && missingPunchMode ? ' cần bổ sung' : ''}</span><input name="checkIn" type="datetime-local" defaultValue={localInput(suggestedCheckIn)} required /></label><label><span>Giờ ra{day.checkOut == null && missingPunchMode ? ' cần bổ sung' : ''}</span><input name="checkOut" type="datetime-local" defaultValue={localInput(suggestedCheckOut)} required /></label><label className="attendance-adjust-wide"><span>Lý do</span><textarea className="nova-textarea" name="reason" required maxLength={500} placeholder={missingPunchMode ? 'Ví dụ: Quên chấm công, bổ sung theo xác nhận của quản lý…' : undefined} /></label>
     </>}
-  </div><footer><button type="button" className="nova-button secondary" disabled={saving} onClick={close}>Hủy</button><button className="nova-button primary" disabled={saving}><Save />{saving ? 'Đang lưu…' : absenceMode ? 'Lưu xác nhận' : 'Lưu hiệu chỉnh'}</button></footer></form></section></div>;
+  </div><footer><button type="button" className="nova-button secondary" disabled={saving} onClick={close}>Hủy</button><button className="nova-button primary" disabled={saving}><Save />{saving ? 'Đang lưu…' : absenceMode ? 'Lưu xác nhận' : missingPunchMode ? 'Bổ sung và tính công' : 'Lưu hiệu chỉnh'}</button></footer></form></section></div>;
 }
 
 function Overview({ data }: { data: AttendanceDashboard }) {

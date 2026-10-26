@@ -9,6 +9,12 @@ export type ApiRequestOptions = Omit<RequestInit, 'body'> & {
   skipCsrf?: boolean;
 };
 
+export type ApiDownloadOptions = {
+  headers?: HeadersInit;
+  method?: 'GET' | 'POST';
+  body?: unknown;
+};
+
 export class ApiClientError extends Error {
   readonly status: number;
   readonly code: string;
@@ -110,21 +116,41 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
   return payload as T;
 }
 
-export async function apiDownload(path: string, accessToken: string): Promise<Blob> {
+export async function apiDownload(
+  path: string,
+  accessToken: string,
+  options: ApiDownloadOptions = {},
+  csrfRetry = true,
+): Promise<Blob> {
+  const method = options.method ?? 'GET';
+  const headers = new Headers(options.headers);
+  // File endpoints may advertise their precise MIME type (ZIP/XLSX/PDF) or
+  // the generic binary type. Accept both so Spring content negotiation does
+  // not reject a valid download with HTTP 406.
+  headers.set('Accept', 'application/octet-stream, application/zip, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/pdf');
+  headers.set('Authorization', `Bearer ${accessToken}`);
+  if (options.body !== undefined) headers.set('Content-Type', 'application/json');
+  if (MUTATING_METHODS.has(method)) {
+    headers.set(csrfHeaderName, await requireCsrfToken());
+  }
   const response = await fetch(`${env.apiBaseUrl}${path}`, {
-    method: 'GET',
+    method,
     credentials: 'include',
     cache: 'no-store',
-    headers: {
-      Accept: 'application/octet-stream',
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers,
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
   });
   if (!response.ok) {
     const contentType = response.headers.get('content-type') ?? '';
     const payload = contentType.includes('application/json')
       ? await response.json() as Partial<ApiErrorPayload>
       : {};
+    if (response.status === 403 && payload.code === 'CSRF_VALIDATION_FAILED'
+        && csrfRetry && MUTATING_METHODS.has(method)) {
+      csrfToken = null;
+      await initializeCsrf();
+      return apiDownload(path, accessToken, options, false);
+    }
     throw new ApiClientError({
       status: response.status,
       error: payload.error ?? response.statusText,

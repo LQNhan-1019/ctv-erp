@@ -1,6 +1,6 @@
 'use client';
 
-import { BadgeDollarSign, BarChart3, Calculator, CalendarDays, ChevronRight, ClipboardList, Clock3, Database, KeyRound, LayoutDashboard, LogOut, Menu, Moon, Plug, ScrollText, Settings, ShieldCheck, Sun, Target, Users, type LucideIcon } from 'lucide-react';
+import { BadgeDollarSign, BarChart3, Calculator, CalendarDays, ChevronRight, ClipboardList, Clock3, Database, KeyRound, LayoutDashboard, LogOut, Menu, MonitorCog, Moon, Plug, ScrollText, Settings, ShieldCheck, Sun, Target, Users, type LucideIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -36,6 +36,7 @@ const routeMap: Record<string, string> = {
   '/admin/expenses': '/admin/expenses',
   '/admin/documents': '/admin/documents',
   '/admin/work-items': '/admin/work-items',
+  '/it/control': '/it/control',
 };
 
 const iconByCode: Record<string, LucideIcon> = {
@@ -60,6 +61,7 @@ const iconByCode: Record<string, LucideIcon> = {
   NAV_ADMIN_EXPENSES: Database,
   NAV_ADMIN_DOCUMENTS: CalendarDays,
   NAV_ADMIN_WORK: ClipboardList,
+  NAV_IT_ENDPOINT_CONTROL: MonitorCog,
 };
 
 const pageHeadings: Record<string, { eyebrow: string; title: string }> = {
@@ -84,6 +86,7 @@ const pageHeadings: Record<string, { eyebrow: string; title: string }> = {
   '/admin/expenses': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Tổng hợp chi phí hành chính' },
   '/admin/documents': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Quản lý thời hạn giấy tờ' },
   '/admin/work-items': { eyebrow: 'HÀNH CHÍNH NHÂN SỰ', title: 'Quản lý công việc' },
+  '/it/control': { eyebrow: 'KIỂM SOÁT CNTT', title: 'Kiểm soát máy tính nội bộ' },
 };
 
 function toShellLink(item: NavigationItem): ShellLink | null {
@@ -118,6 +121,7 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
   const system: ShellLink[] = [];
   const performance: ShellLink[] = [];
   const humanResources: ShellLink[] = [];
+  const informationTechnology: ShellLink[] = [];
 
   if (canManage) {
     access.push(
@@ -138,6 +142,7 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
   if (permissions.includes('ADMIN.EXPENSE.VIEW')) humanResources.push({ href: '/admin/expenses', label: 'Chi phí hành chính', icon: Database });
   if (permissions.includes('ADMIN.DOCUMENT.VIEW')) humanResources.push({ href: '/admin/documents', label: 'Hồ sơ & thời hạn', icon: CalendarDays });
   if (permissions.includes('ADMIN.WORK.VIEW')) humanResources.push({ href: '/admin/work-items', label: 'Quản lý công việc', icon: ClipboardList, code: 'NAV_ADMIN_WORK' });
+  if (permissions.includes('IT.CONTROL.VIEW')) informationTechnology.push({ href: '/it/control', label: 'Kiểm soát máy tính', icon: MonitorCog, code: 'NAV_IT_ENDPOINT_CONTROL' });
 
   const dashboard: ShellLink[] = [];
   if (permissions.includes('PERFORMANCE.DASHBOARD.VIEW')) dashboard.push({ href: '/dashboard', label: 'Dashboard điều hành', icon: LayoutDashboard });
@@ -148,6 +153,7 @@ function fallbackGroups(permissions: string[]): ShellGroup[] {
     { label: 'DASHBOARD PHÒNG BAN', items: dashboard },
     { label: 'MỤC TIÊU & HIỆU SUẤT', items: performance },
     { label: 'HÀNH CHÍNH NHÂN SỰ', items: humanResources },
+    { label: 'KIỂM SOÁT CNTT', items: informationTechnology },
     { label: 'QUẢN TRỊ TRUY CẬP', items: access },
     { label: 'HỆ THỐNG', items: system },
   ];

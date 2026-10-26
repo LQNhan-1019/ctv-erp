@@ -666,7 +666,8 @@ html.dark .leader-kpi-days .filled,html.dark .leader-kpi-days .negative{color:#e
 .attendance-grid .employee small { color: #7b8492; margin-top: 3px; font-weight: 400; }
 .attendance-code { width: 31px; height: 31px; padding: 0; border: 0; border-radius: 7px; color: #24735b; background: #eaf8f2; font-weight: 800; cursor: pointer; }
 .attendance-code.late { color: #9a5b00; background: #fff3ce; }
-.attendance-code.absent, .attendance-code.missing_check_in, .attendance-code.missing_check_out { color: #a63f3b; background: #feeceb; }
+.attendance-code.absent { color: #a63f3b; background: #feeceb; }
+.attendance-code.missing_check_in, .attendance-code.missing_check_out { color: #8a5300; background: #fff1c7; outline: 1px solid #e8bb55; }
 .attendance-code.authorized_leave { color: #176b51; background: #dcf6e9; }
 .attendance-code.off_day { color: #687182; background: #eef1f5; }
 .attendance-total { color: #155c45; background: #eff8f4 !important; font-size: 14px; font-weight: 800; }
